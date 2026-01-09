@@ -1,7 +1,8 @@
 -- Lexer for Rex language 
 -- Tokenizes Rex source code into a stream of tokens 
 -- Supports identifiers, keywords, numbers, strings, symbols, and comments 
--- made by rex team  
+-- Made by Rex team  
+
 local Lexer = {}
 Lexer.__index = Lexer
 

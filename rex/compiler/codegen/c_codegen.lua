@@ -1,5 +1,6 @@
 -- C code generator for Rex language AST 
--- how about that rex team ? :D 
+-- How about that Rex team ? :D 
+ 
 local Codegen = {}
 
 local function indent_line(ctx, text)
