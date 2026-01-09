@@ -1,4 +1,4 @@
--- thx for rex team  i swear they are  make me happy
+-- Thanks for the Rex team; I swear they make me happy.
 -- Rex CLI
 -- Usage: rex <command> [options]
 

@@ -3,7 +3,7 @@
   "displayName": "Rex Language",
   "description": "Syntax highlighting and snippets for Rex",
   "version": "0.1.0",
-  "publisher": "local",
+  "publisher": "0xh7l",
   "icon": "rex.png",
   "engines": {
     "vscode": "^1.80.0"

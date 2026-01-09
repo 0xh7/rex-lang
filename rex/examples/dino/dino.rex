@@ -1,4 +1,5 @@
-// respect to  the guys who made  this  game 
+// Respect to the guys who made this game
+
 use rex::ui
 use rex::time
 use rex::random
