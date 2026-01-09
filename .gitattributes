@@ -26,3 +26,5 @@
 *.dll binary
 *.so binary
 *.dylib binary
+# Rex language 
+*.rex linguist-language=Rex
