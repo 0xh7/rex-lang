@@ -1,0 +1,390 @@
+{
+  "scopeName": "source.rex",
+  "name": "Rex",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#usePaths" },
+    { "include": "#definitions" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#constants" },
+    { "include": "#modules" },
+    { "include": "#enumVariants" },
+    { "include": "#members" },
+    { "include": "#builtins" },
+    { "include": "#operators" },
+    { "include": "#calls" },
+    { "include": "#variables" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.rex",
+          "begin": "//",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.rex" } },
+          "end": "$\\n?",
+          "patterns": []
+        },
+        {
+          "name": "comment.block.rex",
+          "begin": "/\\*",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.rex" } },
+          "end": "\\*/",
+          "endCaptures": { "0": { "name": "punctuation.definition.comment.rex" } },
+          "patterns": []
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.rex",
+          "begin": "\"",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.rex" } },
+          "end": "\"",
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.rex" } },
+          "patterns": [
+            {
+              "name": "constant.character.escape.rex",
+              "match": "\\\\(n|r|t|\\\\|\")"
+            }
+          ]
+        }
+      ]
+    },
+    "definitions": {
+      "patterns": [
+        {
+          "name": "meta.function.definition.rex",
+          "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.rex" },
+            "2": { "name": "entity.name.function.rex" }
+          }
+        },
+        {
+          "name": "meta.struct.definition.rex",
+          "match": "\\b(struct)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.rex" },
+            "2": { "name": "entity.name.type.struct.rex" }
+          }
+        },
+        {
+          "name": "meta.enum.definition.rex",
+          "match": "\\b(enum)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.rex" },
+            "2": { "name": "entity.name.type.enum.rex" }
+          }
+        },
+        {
+          "name": "meta.impl.definition.rex",
+          "match": "\\b(impl)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.rex" },
+            "2": { "name": "entity.name.type.impl.rex" }
+          }
+        },
+        {
+          "name": "meta.type.alias.rex",
+          "match": "\\b(type)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.rex" },
+            "2": { "name": "entity.name.type.alias.rex" }
+          }
+        }
+      ]
+    },
+    "usePaths": {
+      "patterns": [
+        {
+          "name": "meta.use.rex",
+          "begin": "\\buse\\b",
+          "beginCaptures": {
+            "0": { "name": "keyword.other.rex" }
+          },
+          "end": "(;|$)",
+          "patterns": [
+            {
+              "name": "keyword.other.rex",
+              "match": "\\bas\\b"
+            },
+            {
+              "name": "punctuation.separator.namespace.rex",
+              "match": "::"
+            },
+            {
+              "name": "support.module.rex",
+              "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+            }
+          ]
+        }
+      ]
+    },
+    "calls": {
+      "patterns": [
+        {
+          "name": "meta.function.call.rex",
+          "match": "\\b(?!if\\b|else\\b|while\\b|for\\b|in\\b|break\\b|continue\\b|match\\b|return\\b|defer\\b|unsafe\\b|spawn\\b|fn\\b|struct\\b|enum\\b|impl\\b|type\\b|use\\b|as\\b|let\\b|mut\\b|pub\\b|true\\b|false\\b|nil\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "entity.name.function.call.rex" }
+          }
+        }
+      ]
+    },
+    "enumVariants": {
+      "patterns": [
+        {
+          "name": "meta.enum.variant.rex",
+          "match": "\\b(result)\\.(Ok|Err)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.constant.enum-variant.rex" }
+          }
+        },
+        {
+          "name": "meta.enum.variant.rex",
+          "match": "\\b(Ok|Err)\\b(?=\\()",
+          "captures": {
+            "1": { "name": "support.constant.enum-variant.rex" }
+          }
+        },
+        {
+          "name": "meta.enum.variant.rex",
+          "match": "\\b([A-Z][A-Za-z0-9_]*)\\.([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "entity.name.type.enum.rex" },
+            "2": { "name": "support.constant.enum-variant.rex" }
+          }
+        }
+      ]
+    },
+    "members": {
+      "patterns": [
+        {
+          "name": "meta.member.access.rex",
+          "match": "\\.([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": { "name": "variable.other.member.rex" }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.rex",
+          "match": "\\b(impl|enum|struct|type)\\b"
+        },
+        {
+          "name": "keyword.control.rex",
+          "match": "\\b(if|else|while|for|in|break|continue|match|return|defer|unsafe|spawn)\\b"
+        },
+        {
+          "name": "storage.type.rex",
+          "match": "\\b(fn)\\b"
+        },
+        {
+          "name": "storage.modifier.rex",
+          "match": "\\b(let|mut|pub)\\b"
+        },
+        {
+          "name": "keyword.other.rex",
+          "match": "\\b(use|as)\\b"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.rex",
+          "match": "\\b(println|print|channel|sleep|now_ms|format|alloc|free|box|unbox|drop|sqrt|abs)\\b"
+        }
+      ]
+    },
+    "modules": {
+      "patterns": [
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(io)\\.(println|print|read_file|write_file|read_line|read_lines|write_lines)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.io.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(fs)\\.(exists|mkdir|remove)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.fs.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(thread)\\.(channel|wait_all)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.thread.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(time)\\.(sleep|sleep_s|now_ms|now_s|now_ns|since)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.time.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(fmt)\\.(format)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.fmt.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(mem)\\.(alloc|free|box|unbox|drop)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.mem.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(math)\\.(sqrt|abs)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.math.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(collections)\\.(vec_new|vec_push|vec_get|vec_set|vec_len|vec_insert|vec_slice|vec_from|vec_pop|vec_clear|vec_sort|map_new|map_put|map_get|map_remove|map_has|map_keys|set_new|set_add|set_has|set_remove)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.collections.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(os)\\.(getenv|cwd)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.os.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(net)\\.(tcp_connect|udp_socket)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.net.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(http)\\.(get|get_status|get_json)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.http.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(random)\\.(seed|int|float|bool|choice|shuffle|range)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.random.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(json)\\.(encode|encode_pretty|decode)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.json.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(result)\\.(Ok|Err)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.constant.enum-variant.rex" }
+          }
+        },
+        {
+          "name": "meta.module.access.rex",
+          "match": "\\b(ui)\\.(begin|end|redraw|clear|key_space|key_up|key_down|mouse_x|mouse_y|mouse_down|mouse_pressed|mouse_released|label|text|button|checkbox|radio|textbox|slider|progress|switch|select|combo|menu|tabs|row|column|grid|newline|row_end|clip_begin|clip_end|spacing|padding|scroll_begin|scroll_end|enabled|invert|titlebar_dark|theme_dark|theme_light|theme_custom|image_load|image_w|image_h|image|image_region|play_sound)\\b",
+          "captures": {
+            "1": { "name": "support.module.rex" },
+            "2": { "name": "support.function.ui.rex" }
+          }
+        },
+        {
+          "name": "support.module.rex",
+          "match": "\\b(rex|io|fs|thread|time|fmt|mem|math|collections|os|net|http|json|random|ui|result)\\b"
+        },
+        {
+          "name": "entity.name.namespace.rex",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=::)"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.rex",
+          "match": "\\b(true|false|nil)\\b"
+        },
+        {
+          "name": "variable.language.rex",
+          "match": "\\b(self|Self)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.rex",
+          "match": "\\b(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|int|float|bool|str|string|char|usize|isize|Result|Option|Vec|Map|Set|Sender|Receiver|Self|void|any|unknown)\\b"
+        },
+        {
+          "name": "entity.name.type.rex",
+          "match": "\\b(?!Ok\\b|Err\\b)[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.rex",
+          "match": "\\b\\d+(?:\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.rex",
+          "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.rex",
+          "match": "(==|!=|<=|>=|&&|\\|\\||->|=>|::|\\.\\.|=|<|>|\\+|\\-|\\*|/|%|!|&|\\?|\\.)"
+        }
+      ]
+    }
+  }
+}

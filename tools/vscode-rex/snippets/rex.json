@@ -1,0 +1,136 @@
+{
+  "Function": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name}(${2}) {",
+      "    ${0}",
+      "}"
+    ],
+    "description": "Function"
+  },
+  "Struct": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "    ${2:field}: ${3:type}",
+      "}"
+    ],
+    "description": "Struct"
+  },
+  "Enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "    ${2:Variant}",
+      "}"
+    ],
+    "description": "Enum"
+  },
+  "Impl": {
+    "prefix": "impl",
+    "body": [
+      "impl ${1:Type} {",
+      "    fn ${2:method}(&self) {",
+      "        ${0}",
+      "    }",
+      "}"
+    ],
+    "description": "Impl block"
+  },
+  "Match": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value} {",
+      "    ${2:Pattern} => ${3:expr},",
+      "}"
+    ],
+    "description": "Match"
+  },
+  "If": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} {",
+      "    ${0}",
+      "}"
+    ],
+    "description": "If"
+  },
+  "While": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} {",
+      "    ${0}",
+      "}"
+    ],
+    "description": "While"
+  },
+  "ForRange": {
+    "prefix": "for",
+    "body": [
+      "for ${1:i} in ${2:0}..${3:n} {",
+      "    ${0}",
+      "}"
+    ],
+    "description": "For range"
+  },
+  "Defer": {
+    "prefix": "defer",
+    "body": [
+      "defer {",
+      "    ${0}",
+      "}"
+    ],
+    "description": "Defer"
+  },
+  "TypeAlias": {
+    "prefix": "type",
+    "body": [
+      "type ${1:Name} = ${2:Type};"
+    ],
+    "description": "Type alias"
+  },
+  "UseModule": {
+    "prefix": "use",
+    "body": [
+      "use rex::${1:module}"
+    ],
+    "description": "Use module"
+  },
+  "Channel": {
+    "prefix": "channel",
+    "body": [
+      "let (tx, rx) = channel<${1:T}>()"
+    ],
+    "description": "Channel"
+  },
+  "Spawn": {
+    "prefix": "spawn",
+    "body": [
+      "spawn {",
+      "    ${0}",
+      "}"
+    ],
+    "description": "Spawn"
+  },
+  "HttpGet": {
+    "prefix": "http.get",
+    "body": [
+      "http.get(\"${1:url}\")"
+    ],
+    "description": "HTTP GET"
+  },
+  "JsonPretty": {
+    "prefix": "json.pretty",
+    "body": [
+      "json.encode_pretty(${1:value}, ${2:2})"
+    ],
+    "description": "JSON pretty"
+  },
+  "RandomInt": {
+    "prefix": "random.int",
+    "body": [
+      "random.int(${1:min}, ${2:max})"
+    ],
+    "description": "Random int"
+  }
+}

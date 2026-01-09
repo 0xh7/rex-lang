@@ -1,0 +1,29 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.dll
+
+# C output
+main.c
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.AppleDouble
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log

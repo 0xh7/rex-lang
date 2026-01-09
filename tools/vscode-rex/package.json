@@ -1,0 +1,53 @@
+{
+  "name": "rex-lang",
+  "displayName": "Rex Language",
+  "description": "Syntax highlighting and snippets for Rex",
+  "version": "0.1.0",
+  "publisher": "local",
+  "icon": "rex.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rex",
+        "aliases": [
+          "Rex",
+          "rex"
+        ],
+        "extensions": [
+          ".rex"
+        ],
+        "icon": {
+          "light": "./rex.png",
+          "dark": "./rex.png"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rex",
+        "scopeName": "source.rex",
+        "path": "./syntaxes/rex.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "rex",
+        "path": "./snippets/rex.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "rex realm ",
+        "uiTheme": "vs-dark",
+        "path": "./themes/rexrealm.json"
+      }
+    ]
+  }
+}
