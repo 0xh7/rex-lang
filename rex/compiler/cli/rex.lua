@@ -338,6 +338,33 @@ local function exec_ok(cmd)
   return false
 end
 
+local function sleep_short()
+  if is_windows() then
+    os.execute("timeout /t 1 /nobreak >nul 2>nul")
+  else
+    os.execute("sleep 1 >/dev/null 2>&1")
+  end
+end
+
+local function run_exec(path)
+  local run_path = cmd_path(path)
+  local cmd = '"' .. run_path .. '"'
+  if not is_windows() then
+    return exec_ok(cmd)
+  end
+  -- On Windows, newly generated binaries can be transiently locked.
+  local attempts = 4
+  for i = 1, attempts do
+    if exec_ok(cmd) then
+      return true
+    end
+    if i < attempts then
+      sleep_short()
+    end
+  end
+  return false
+end
+
 local function first_command_token(command)
   local raw = tostring(command or ""):gsub("^%s+", "")
   if raw == "" then
@@ -827,8 +854,7 @@ elseif cmd == "run" then
   end
   build(input, c_out, true)
   compile_c(c_out, out, cc, mode)
-  local run_path = cmd_path(out)
-  if not exec_ok('"' .. run_path .. '"') then
+  if not run_exec(out) then
     error("Run failed")
   end
 elseif cmd == "bench" then
