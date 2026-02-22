@@ -15,6 +15,7 @@
 [Setup]
 AppId={{0D9DDA9A-9F6E-48AF-9D6D-78674F5515E4}
 AppName={#MyAppName}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\RexLang
@@ -24,16 +25,14 @@ OutputBaseFilename=rex-{#MyAppVersion}-windows-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-WizardImageFile={#RepoRoot}\rex.png
-WizardSmallImageFile={#RepoRoot}\rex.png
-WizardImageStretch=yes
+WizardSizePercent=110
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesInstallIn64BitMode=x64compatible
 ChangesEnvironment=yes
 SetupLogging=yes
-UninstallDisplayIcon={app}\rex.png
+UninstallDisplayIcon={uninstallexe}
 UsePreviousLanguage=yes
 
 [Languages]
@@ -63,9 +62,9 @@ Source: "{#LuaDir}lua*.dll"; DestDir: "{app}\lua"; Flags: ignoreversion skipifso
 #endif
 
 [Icons]
-Name: "{group}\Rex Console"; Filename: "{app}\bin\rex.cmd"
+Name: "{group}\Rex Console"; Filename: "{cmd}"; Parameters: "/K ""{app}\bin\rex.cmd --help"""; WorkingDir: "{app}\bin"; IconFilename: "{sys}\cmd.exe"
 Name: "{group}\Uninstall Rex"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Rex Console"; Filename: "{app}\bin\rex.cmd"; Tasks: desktopicon
+Name: "{autodesktop}\Rex Console"; Filename: "{cmd}"; Parameters: "/K ""{app}\bin\rex.cmd --help"""; WorkingDir: "{app}\bin"; IconFilename: "{sys}\cmd.exe"; Tasks: desktopicon
 
 [Code]
 const
@@ -201,14 +200,19 @@ begin
     '@echo off' + #13#10 +
     'setlocal' + #13#10 +
     'set "REX_ROOT=%~dp0.."' + #13#10 +
+    'set "REX_CLI=%REX_ROOT%\rex\compiler\cli\rex.lua"' + #13#10 +
     'set "REX_LUA=%REX_ROOT%\lua\lua.exe"' + #13#10 +
+    'if not exist "%REX_CLI%" goto missing_cli' + #13#10 +
     'if exist "%REX_LUA%" goto run' + #13#10 +
     'where lua.exe >nul 2>nul && set "REX_LUA=lua.exe"' + #13#10 +
     'if defined REX_LUA goto run' + #13#10 +
     'echo Rex error: lua.exe not found. Reinstall Rex with bundled Lua or add Lua to PATH.' + #13#10 +
     'exit /b 1' + #13#10 +
+    ':missing_cli' + #13#10 +
+    'echo Rex error: compiler CLI not found at "%REX_CLI%". Reinstall Rex.' + #13#10 +
+    'exit /b 1' + #13#10 +
     ':run' + #13#10 +
-    '"%REX_LUA%" "%REX_ROOT%\rex\compiler\cli\rex.lua" %*' + #13#10;
+    '"%REX_LUA%" "%REX_CLI%" %*' + #13#10;
 
   SaveStringToFile(LauncherPath, Content, False);
 end;
