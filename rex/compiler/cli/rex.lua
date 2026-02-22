@@ -50,18 +50,42 @@ end
 
 local function mkdir_p(path)
   if not path or path == "" then
-    return
+    return true
   end
   local sep = package.config:sub(1, 1)
+  local cmd
   if sep == "\\" then
-    os.execute('if not exist "' .. path .. '" mkdir "' .. path .. '"')
+    cmd = 'if not exist "' .. path .. '" mkdir "' .. path .. '" >nul 2>nul'
   else
-    os.execute('mkdir -p "' .. path .. '"')
+    cmd = 'mkdir -p "' .. path .. '" >/dev/null 2>&1'
   end
+  local ok = os.execute(cmd)
+  if type(ok) == "number" then
+    return ok == 0
+  end
+  if type(ok) == "boolean" then
+    return ok
+  end
+  return false
 end
 
 local function split_dir(path)
   return path:match("^(.*)[/\\]")
+end
+
+local function join_path(a, b)
+  if not a or a == "" then
+    return b
+  end
+  if not b or b == "" then
+    return a
+  end
+  local last = a:sub(-1)
+  if last == "/" or last == "\\" then
+    return a .. b
+  end
+  local sep = package.config:sub(1, 1)
+  return a .. sep .. b
 end
 
 local function normalize_path(path)
@@ -152,8 +176,79 @@ local function cmd_path(path)
   return p
 end
 
+local function write_probe_suffix()
+  return tostring(os.time()) .. "_" .. tostring(math.floor((os.clock() or 0) * 1000000))
+end
+
+local function is_writable_dir(path)
+  if not mkdir_p(path) then
+    return false
+  end
+  local probe = join_path(path, ".rex_write_" .. write_probe_suffix() .. ".tmp")
+  local f = io.open(probe, "wb")
+  if not f then
+    return false
+  end
+  f:write("ok")
+  f:close()
+  os.remove(probe)
+  return true
+end
+
+local resolved_build_root = nil
+
+local function resolve_build_root()
+  if resolved_build_root then
+    return resolved_build_root
+  end
+
+  local env_build_dir = os.getenv("REX_BUILD_DIR")
+  if env_build_dir and env_build_dir ~= "" then
+    if is_writable_dir(env_build_dir) then
+      resolved_build_root = env_build_dir
+      return resolved_build_root
+    end
+    error("REX_BUILD_DIR is not writable: " .. env_build_dir)
+  end
+
+  if is_writable_dir("build") then
+    resolved_build_root = "build"
+    return resolved_build_root
+  end
+
+  local candidates = {}
+  if is_windows() then
+    local local_app_data = os.getenv("LOCALAPPDATA")
+    if local_app_data and local_app_data ~= "" then
+      table.insert(candidates, join_path(join_path(local_app_data, "RexLang"), "build"))
+    end
+  else
+    local xdg_cache_home = os.getenv("XDG_CACHE_HOME")
+    if xdg_cache_home and xdg_cache_home ~= "" then
+      table.insert(candidates, join_path(join_path(xdg_cache_home, "rex"), "build"))
+    end
+  end
+  local tmp = os.getenv("TMPDIR") or os.getenv("TEMP") or os.getenv("TMP")
+  if tmp and tmp ~= "" then
+    table.insert(candidates, join_path(tmp, "rex-build"))
+  end
+  if not is_windows() then
+    table.insert(candidates, "/tmp/rex-build")
+  end
+
+  for _, candidate in ipairs(candidates) do
+    if is_writable_dir(candidate) then
+      resolved_build_root = candidate
+      io.stderr:write("Rex: current directory is read-only; using build directory: " .. candidate .. "\n")
+      return resolved_build_root
+    end
+  end
+
+  error("No writable build directory found. Set REX_BUILD_DIR to a writable path.")
+end
+
 local function default_c_out()
-  return "build/main.c"
+  return join_path(resolve_build_root(), "main.c")
 end
 
 local function default_exe_path(out)
@@ -539,6 +634,7 @@ local function usage()
   print("  rex fmt [input]")
   print("  rex lint [input]")
   print("  rex check [input]")
+  print("  env: REX_BUILD_DIR=<writable path> (optional)")
 end
 
 local args = { ... }
@@ -550,8 +646,8 @@ if cmd == "init" then
   print("Initialized " .. path)
 elseif cmd == "build" then
   local input = args[2] or "src/main.rex"
-  local out = default_exe_path(default_c_out())
   local c_out = default_c_out()
+  local out = default_exe_path(c_out)
   local out_set = false
   local c_out_set = false
   local emit_entry = true
@@ -618,7 +714,8 @@ elseif cmd == "run" then
   local input = args[2] or "src/main.rex"
   local run_base = path_stem(input)
   local run_id = unique_suffix()
-  local c_out = "build/run/" .. run_base .. "_" .. run_id .. ".c"
+  local run_dir = join_path(resolve_build_root(), "run")
+  local c_out = join_path(run_dir, run_base .. "_" .. run_id .. ".c")
   local out = default_exe_path(c_out)
   local out_set = false
   local c_out_set = false
@@ -703,8 +800,9 @@ elseif cmd == "bench" then
   end
   local bench_base = path_stem(input)
   local bench_id = unique_suffix()
-  local c_out = "build/bench/" .. bench_base .. "_" .. bench_id .. ".c"
-  local out = default_exe_path("build/bench/" .. bench_base .. "_" .. bench_id)
+  local bench_dir = join_path(resolve_build_root(), "bench")
+  local c_out = join_path(bench_dir, bench_base .. "_" .. bench_id .. ".c")
+  local out = default_exe_path(join_path(bench_dir, bench_base .. "_" .. bench_id))
   build(input, c_out, true)
   compile_c(c_out, out, cc, mode)
   local run_path = cmd_path(out)
@@ -749,10 +847,11 @@ elseif cmd == "test" then
   if #files == 0 then
     print("No examples found")
   else
-    mkdir_p("build/tests")
+    local tests_dir = join_path(resolve_build_root(), "tests")
+    mkdir_p(tests_dir)
     for _, file in ipairs(files) do
       local base = file:match("([^/\\]+)%.rex$") or "example"
-      local c_out = "build/tests/" .. base .. ".c"
+      local c_out = join_path(tests_dir, base .. ".c")
       build(file, c_out, true)
     end
     print("Built " .. #files .. " example(s)")

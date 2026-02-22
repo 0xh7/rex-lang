@@ -64,9 +64,9 @@ Source: "{#LuaDir}lua*.dll"; DestDir: "{app}\lua"; Flags: ignoreversion skipifso
 #endif
 
 [Icons]
-Name: "{group}\Rex Console"; Filename: "{cmd}"; Parameters: "/K ""{app}\bin\rex.cmd --help"""; WorkingDir: "{app}\bin"; IconFilename: "{app}\rex.ico"
+Name: "{group}\Rex Console"; Filename: "{cmd}"; Parameters: "/K ""{app}\bin\rex.cmd --help"""; WorkingDir: "{userdocs}"; IconFilename: "{app}\rex.ico"
 Name: "{group}\Uninstall Rex"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Rex Console"; Filename: "{cmd}"; Parameters: "/K ""{app}\bin\rex.cmd --help"""; WorkingDir: "{app}\bin"; IconFilename: "{app}\rex.ico"; Tasks: desktopicon
+Name: "{autodesktop}\Rex Console"; Filename: "{cmd}"; Parameters: "/K ""{app}\bin\rex.cmd --help"""; WorkingDir: "{userdocs}"; IconFilename: "{app}\rex.ico"; Tasks: desktopicon
 
 [Code]
 const
