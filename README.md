@@ -24,6 +24,13 @@ If `rex` is not recognized in PowerShell, use:
 & "C:\Program Files\RexLang\bin\rex.cmd" run "C:\rex-lang\rex\examples\hello.rex"
 ```
 
+If you get `C compiler not found` on Windows, install Clang:
+
+```powershell
+winget install -e --id LLVM.LLVM
+setx CC clang
+```
+
 From source checkout, run:
 
 ```bash

@@ -338,6 +338,68 @@ local function exec_ok(cmd)
   return false
 end
 
+local function first_command_token(command)
+  local raw = tostring(command or ""):gsub("^%s+", "")
+  if raw == "" then
+    return nil
+  end
+  if raw:sub(1, 1) == '"' then
+    return raw:match('^"([^"]+)"')
+  end
+  return raw:match("^([^%s]+)")
+end
+
+local function command_exists(command)
+  local token = first_command_token(command)
+  if not token or token == "" then
+    return false
+  end
+  if token:match("[/\\]") or is_absolute_path(token) then
+    return file_exists(token)
+  end
+  if is_windows() then
+    return exec_ok('where "' .. token .. '" >nul 2>nul')
+  end
+  return exec_ok('command -v "' .. token .. '" >/dev/null 2>&1')
+end
+
+local function detect_default_cc()
+  local env_cc = os.getenv("CC")
+  if env_cc and env_cc ~= "" then
+    return env_cc
+  end
+  local candidates
+  if detect_platform() == "windows" then
+    candidates = { "clang", "gcc", "zig cc", "cc" }
+  else
+    candidates = { "cc", "clang", "gcc", "zig cc" }
+  end
+  for _, c in ipairs(candidates) do
+    if command_exists(c) then
+      return c
+    end
+  end
+  return nil
+end
+
+local function missing_compiler_message(cc)
+  local lines = {}
+  if cc and cc ~= "" then
+    table.insert(lines, "C compiler not found: " .. cc)
+  else
+    table.insert(lines, "No supported C compiler found (tried clang, gcc, zig cc, cc).")
+  end
+  if detect_platform() == "windows" then
+    table.insert(lines, "Install a compiler (recommended): winget install -e --id LLVM.LLVM")
+    table.insert(lines, "Then reopen terminal and run: setx CC clang")
+  elseif detect_platform() == "mac" then
+    table.insert(lines, "Install Xcode Command Line Tools: xcode-select --install")
+  else
+    table.insert(lines, "Install build tools (for example: gcc or clang).")
+  end
+  return table.concat(lines, "\n")
+end
+
 local function normalize_build_mode(mode)
   local m = mode
   if not m or m == "" then
@@ -449,6 +511,12 @@ local function has_alsa()
 end
 
 local function compile_c(source, output, cc, mode)
+  if not cc or cc == "" then
+    error(missing_compiler_message(nil))
+  end
+  if not command_exists(cc) then
+    error(missing_compiler_message(cc))
+  end
   local root = script_root()
   local runtime_dir = root .. "/runtime_c"
   local runtime_c = runtime_dir .. "/rex_rt.c"
@@ -634,6 +702,7 @@ local function usage()
   print("  rex fmt [input]")
   print("  rex lint [input]")
   print("  rex check [input]")
+  print("  note: native build/run need a C compiler (clang, gcc, or zig cc)")
   print("  env: REX_BUILD_DIR=<writable path> (optional)")
 end
 
@@ -652,7 +721,7 @@ elseif cmd == "build" then
   local c_out_set = false
   local emit_entry = true
   local native = true
-  local cc = os.getenv("CC") or "cc"
+  local cc = detect_default_cc()
   local mode = normalize_build_mode(nil)
   local i = 3
   while i <= #args do
@@ -719,7 +788,7 @@ elseif cmd == "run" then
   local out = default_exe_path(c_out)
   local out_set = false
   local c_out_set = false
-  local cc = os.getenv("CC") or "cc"
+  local cc = detect_default_cc()
   local mode = normalize_build_mode(nil)
   local i = 3
   while i <= #args do
@@ -765,7 +834,7 @@ elseif cmd == "run" then
 elseif cmd == "bench" then
   local input = args[2] or "examples/benchmark.rex"
   local runs = 5
-  local cc = os.getenv("CC") or "cc"
+  local cc = detect_default_cc()
   local mode = normalize_build_mode(nil)
   local i = 3
   if input:sub(1, 2) == "--" then

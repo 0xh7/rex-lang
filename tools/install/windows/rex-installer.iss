@@ -233,11 +233,13 @@ begin
 #ifdef LuaExe
   RuntimeLabel.Caption := 'Bundled Lua: yes' + #13#10 +
     'Installer was built with Lua embedded.' + #13#10 +
-    'rex.cmd will use bundled lua.exe by default.';
+    'rex.cmd will use bundled lua.exe by default.' + #13#10 +
+    'Native run/build still requires a C compiler (recommended: clang).';
 #else
   RuntimeLabel.Caption := 'Bundled Lua: no' + #13#10 +
     'Installer does not include lua.exe.' + #13#10 +
-    'Install Lua 5.4+ and keep it in PATH so rex works.';
+    'Install Lua 5.4+ and keep it in PATH so rex works.' + #13#10 +
+    'Native run/build also requires a C compiler (recommended: clang).';
 #endif
 end;
 

@@ -24,6 +24,13 @@ If `rex` is not recognized in PowerShell, open a new terminal window or use:
 & "C:\Program Files\RexLang\bin\rex.cmd" run "C:\rex-lang\rex\examples\hello.rex"
 ```
 
+If you see `C compiler not found`, install Clang and set it as default:
+
+```powershell
+winget install -e --id LLVM.LLVM
+setx CC clang
+```
+
 ## 3. Run Rex from Source Repository
 
 From the repo root:
