@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 set "SCRIPT=%~dp0rex-installer.iss"
 set "REPO_ROOT=%~dp0..\..\.."
@@ -57,9 +57,9 @@ if not "%~1"=="" (
   )
   set "LUA_EXE=%~f1"
 )
-if "%LUA_EXE%"=="" (
+if not defined LUA_EXE (
   for /f "delims=" %%I in ('where lua.exe 2^>nul') do (
-    if "%LUA_EXE%"=="" set "LUA_EXE=%%~fI"
+    if not defined LUA_EXE set "LUA_EXE=%%~fI"
   )
 )
 
@@ -69,14 +69,14 @@ echo   Version : %APP_VERSION%
 echo   ISCC    : %ISCC%
 if defined INNO_PORTABLE_ZIP_PATH echo   InnoZip : %INNO_PORTABLE_ZIP_PATH%
 if defined INNO_PORTABLE_URL echo   InnoURL : %INNO_PORTABLE_URL%
-if not "%LUA_EXE%"=="" (
+if defined LUA_EXE (
   echo   Lua    : %LUA_EXE%
 ) else (
   echo   Lua    : not found ^(installer will require lua.exe in PATH on target machine^)
 )
 echo.
 
-if not "%LUA_EXE%"=="" (
+if defined LUA_EXE (
   "%ISCC%" /DRepoRoot="%REPO_ROOT%" /DMyAppVersion="%APP_VERSION%" /DLuaExe="%LUA_EXE%" /O"%OUTDIR%" "%SCRIPT%"
 ) else (
   "%ISCC%" /DRepoRoot="%REPO_ROOT%" /DMyAppVersion="%APP_VERSION%" /O"%OUTDIR%" "%SCRIPT%"

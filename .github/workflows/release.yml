@@ -86,7 +86,7 @@ jobs:
           $luaUrls = @(
             "https://downloads.sourceforge.net/project/luabinaries/$luaVersion/Tools%20Executables/$luaFile",
             "https://master.dl.sourceforge.net/project/luabinaries/$luaVersion/Tools%20Executables/$luaFile",
-            "https://yer.dl.sourceforge.net/project/luabinaries/$luaVersion/Tools%20Executables/$luaFile?viasf=1"
+            "https://yer.dl.sourceforge.net/project/luabinaries/$luaVersion/Tools%20Executables/${luaFile}?viasf=1"
           )
           $toolsDir = Join-Path $PWD "dist\tools"
           $luaZip = Join-Path $toolsDir "lua-$luaVersion-win64.zip"
