@@ -127,8 +127,6 @@ function ReadPathValue(RootKey: Integer; var Value: string): Boolean;
 begin
   Result := RegQueryStringValue(RootKey, EnvSubKey, PathValueName, Value);
   if not Result then
-    Result := RegQueryExpandStringValue(RootKey, EnvSubKey, PathValueName, Value);
-  if not Result then
     Value := '';
 end;
 
