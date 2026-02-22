@@ -13,18 +13,13 @@ if not exist "%OUTDIR%" mkdir "%OUTDIR%"
 if not exist "%TOOLS_DIR%" mkdir "%TOOLS_DIR%"
 
 set "INNO_PORTABLE_ZIP_PATH="
-if not "%~3"=="" (
-  if exist "%~3" (
-    set "INNO_PORTABLE_ZIP_PATH=%~f3"
-  ) else (
-    set "INNO_PORTABLE_URL=%~3"
-  )
-)
+set "INNO_PORTABLE_URL="
+if not "%~3"=="" call :resolve_inno_arg "%~3"
 if defined INNO_PORTABLE_URL (
-  echo.%INNO_PORTABLE_URL% | findstr /C:"..." >nul
+  echo(%INNO_PORTABLE_URL% | findstr /C:"..." >nul
   if not errorlevel 1 (
     echo [ERROR] Invalid URL placeholder detected: %INNO_PORTABLE_URL%
-    echo [INFO] Use a real URL (not https://...).
+    echo [INFO] Use a real URL ^(not https://...^).
     echo [INFO] Example:
     echo        tools\install\windows\build-installer.bat "C:\lua\lua.exe" 0.1.0 "https://example.com/innosetup-6.7.0-portable.zip"
     exit /b 1
@@ -50,13 +45,7 @@ set "APP_VERSION=0.1.0"
 if not "%~2"=="" set "APP_VERSION=%~2"
 
 set "LUA_EXE="
-if not "%~1"=="" (
-  if not exist "%~1" (
-    echo [ERROR] Lua path not found: %~1
-    exit /b 1
-  )
-  set "LUA_EXE=%~f1"
-)
+if not "%~1"=="" call :resolve_lua_arg "%~1"
 if not defined LUA_EXE (
   for /f "delims=" %%I in ('where lua.exe 2^>nul') do (
     if not defined LUA_EXE set "LUA_EXE=%%~fI"
@@ -91,6 +80,22 @@ echo.
 echo [OK] Installer created in:
 echo   %OUTDIR%
 exit /b 0
+
+:resolve_inno_arg
+if exist "%~1" (
+  set "INNO_PORTABLE_ZIP_PATH=%~f1"
+) else (
+  set "INNO_PORTABLE_URL=%~1"
+)
+goto :eof
+
+:resolve_lua_arg
+if not exist "%~1" (
+  echo [ERROR] Lua path not found: %~1
+  exit /b 1
+)
+set "LUA_EXE=%~f1"
+goto :eof
 
 :find_iscc
 set "ISCC="

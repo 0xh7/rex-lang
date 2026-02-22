@@ -18,6 +18,12 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
+# Windows scripts and installer sources
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+
 # Binary files
 *.png binary
 *.jpg binary
