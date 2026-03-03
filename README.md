@@ -12,26 +12,25 @@ Prerequisites:
 - Lua 5.4+ (or compatible Lua runtime)
 - A C compiler (`cc`, `clang`, or `gcc`)
 
-If you installed Rex from the Windows installer, run:
-
+Windows installer usage:
 ```powershell
 rex run "C:\rex-lang\rex\examples\hello.rex"
 ```
 
-If `rex` is not recognized in PowerShell, use:
+PowerShell fallback:
 
 ```powershell
 & "C:\Program Files\RexLang\bin\rex.cmd" run "C:\rex-lang\rex\examples\hello.rex"
 ```
 
-If you get `C compiler not found` on Windows, install Clang:
+Windows compiler setup (when `C compiler not found` appears):
 
 ```powershell
 winget install -e --id LLVM.LLVM
 setx CC clang
 ```
 
-From source checkout, run:
+Source checkout usage:
 
 ```bash
 cd rex
@@ -84,13 +83,6 @@ Each release publishes:
 
 - `rex-<version>-windows-setup.exe`
 - `rex-<version>-windows-portable.zip`
-
-Create a release:
-
-```bash
-git tag -a v0.2.0 -m "Rex v0.2.0"
-git push origin v0.2.0
-```
 
 ## Project Layout
 

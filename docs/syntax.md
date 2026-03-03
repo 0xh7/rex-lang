@@ -1,6 +1,6 @@
 # Rex Syntax Guide
 
-This guide describes the syntax that is implemented in the current compiler.
+Reference for syntax implemented by the current compiler.
 
 ## 1. Basic Rules
 

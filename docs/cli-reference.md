@@ -1,19 +1,21 @@
 # Rex CLI Reference
 
-Commands can be run in two ways:
+CLI command reference.
+
+Command forms:
 
 ```bash
 rex <command> ...
 ```
 
-From source checkout, use:
+Source checkout form:
 
 ```bash
 cd rex
 lua compiler/cli/rex.lua <command> ...
 ```
 
-Examples below use the installed form (`rex ...`).
+Examples use the installed form (`rex ...`).
 
 ## 1. `init`
 

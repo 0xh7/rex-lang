@@ -1,6 +1,6 @@
 # Getting Started with Rex
 
-This guide gets you from zero to running your first Rex program in a few minutes.
+Quick setup reference for running a first Rex program.
 
 ## 1. Prerequisites
 
@@ -8,23 +8,23 @@ Install:
 - Lua 5.4+ (or compatible runtime)
 - A C compiler (`cc`, `clang`, or `gcc`)
 
-Then pick one of the flows below.
+Available installation flows:
 
 ## 2. Run Rex from Installer (Windows)
 
-If you installed Rex from the Windows setup package, run:
+Windows installer usage:
 
 ```powershell
 rex run "C:\rex-lang\rex\examples\hello.rex"
 ```
 
-If `rex` is not recognized in PowerShell, open a new terminal window or use:
+PowerShell fallback:
 
 ```powershell
 & "C:\Program Files\RexLang\bin\rex.cmd" run "C:\rex-lang\rex\examples\hello.rex"
 ```
 
-If you see `C compiler not found`, install Clang and set it as default:
+Windows compiler setup (when `C compiler not found` appears):
 
 ```powershell
 winget install -e --id LLVM.LLVM
@@ -40,30 +40,30 @@ cd rex
 lua compiler/cli/rex.lua run examples/hello.rex
 ```
 
-You should see output similar to:
+Expected output:
 - `Hello from Rex`
 - elapsed time in milliseconds
 
 ## 4. Check a File (Types + Ownership)
 
-Before running a program, use `check`:
+Validation:
 
 ```bash
 rex check "C:\rex-lang\rex\examples\hello.rex"
 ```
 
-From source checkout:
+Source checkout usage:
 
 ```bash
 cd rex
 lua compiler/cli/rex.lua check examples/hello.rex
 ```
 
-If everything is valid, the command prints `OK ...`.
+Successful validation prints `OK ...`.
 
 ## 5. Try the Newer Syntax Samples
 
-If you want quick examples of the current language surface, run:
+Current syntax samples:
 
 ```bash
 rex run "C:\rex-lang\rex\examples\test_struct_lit.rex"
@@ -71,7 +71,7 @@ rex run "C:\rex-lang\rex\examples\test_nested_assign.rex"
 rex run "C:\rex-lang\rex\examples\test_multi_match.rex"
 ```
 
-From source checkout:
+Source checkout usage:
 
 ```bash
 cd rex
@@ -82,17 +82,17 @@ lua compiler/cli/rex.lua run examples/test_multi_match.rex
 
 ## 6. Create a New Project
 
-Initialize a project folder:
+Project initialization:
 
 ```bash
 rex init my-app
 ```
 
-This creates:
+Generated files:
 - `my-app/rex.toml`
 - `my-app/src/main.rex`
 
-From source checkout:
+Source checkout usage:
 
 ```bash
 cd rex
@@ -101,19 +101,19 @@ lua compiler/cli/rex.lua init my-app
 
 ## 7. Build and Run Your Own File
 
-Build to C and native binary (installed Rex):
+Installed Rex build:
 
 ```bash
 rex build my-app/src/main.rex
 ```
 
-Run directly:
+Direct run:
 
 ```bash
 rex run my-app/src/main.rex
 ```
 
-From source checkout:
+Source checkout usage:
 
 ```bash
 cd rex
@@ -121,7 +121,7 @@ lua compiler/cli/rex.lua build my-app/src/main.rex
 lua compiler/cli/rex.lua run my-app/src/main.rex
 ```
 
-## 8. Useful Daily Commands
+## 8. Common Commands
 
 - Format source:
   - `rex fmt path/to/file.rex`
@@ -130,7 +130,7 @@ lua compiler/cli/rex.lua run my-app/src/main.rex
 - Build all examples to generated C:
   - `rex test`
 
-## 9. Where to Go Next
+## 9. Further Reading
 
 - Syntax: `docs/syntax.md`
 - Ownership: `docs/ownership.md`

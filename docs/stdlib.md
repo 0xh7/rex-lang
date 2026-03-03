@@ -9,7 +9,7 @@ use rex::io
 use rex::time
 ```
 
-Below is a practical map of the current modules.
+Current module map:
 
 ## 1. Core Built-ins
 

@@ -1,6 +1,6 @@
 # Rex Troubleshooting: Common Errors
 
-This page explains the most common errors you will see while using Rex.
+Common error reference for current Rex behavior.
 Each section includes:
 - the actual error message
 - what it means

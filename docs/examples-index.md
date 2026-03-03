@@ -1,6 +1,6 @@
 # Examples Index
 
-This page summarizes every sample program under `rex/examples`.
+Summary of sample programs under `rex/examples`.
 
 ## Core Language
 
