@@ -28,6 +28,10 @@ Meaning:
 How to fix:
 - Make sure the construct is valid in that context (top-level vs inside a block).
 
+One common case is assignment to a shape the current statement parser does not
+accept. Check the full left-hand side and make sure it is a valid binding,
+member path, or index/member chain.
+
 ### `Unterminated string at line:col`
 Meaning:
 - String started with `"` but was not closed.
@@ -68,6 +72,13 @@ Meaning:
 
 Fix:
 - Use `pub` only with items like `fn`, `struct`, `enum`, etc.
+
+### `Parse error ...: Wildcard '_' must be the last arm in a match expression`
+Meaning:
+- A wildcard arm appeared before later arms in `match`.
+
+Fix:
+- Move `_ => ...` to the last arm.
 
 ## 2. Type and Name Errors
 
@@ -152,6 +163,14 @@ Meaning:
 
 Fix:
 - Use `mut x = ...` if reassignment is intended.
+
+### `Cannot assign to field of immutable variable: x`
+### `Cannot assign to index of immutable variable: x`
+Meaning:
+- A nested member or indexed assignment starts from an immutable root binding.
+
+Fix:
+- Mark the root binding as `mut`.
 
 ### `Cannot assign to x while it is borrowed`
 Meaning:
@@ -253,6 +272,16 @@ Meaning:
 
 Fix:
 - Correct field name or type.
+
+### `Unknown field 'f' on struct Type`
+### `Duplicate field 'f' in struct literal Type`
+### `Missing field 'f' in struct literal Type`
+Meaning:
+- A struct literal uses a wrong field name, repeats a field, or leaves one out.
+
+Fix:
+- Use each declared field exactly once.
+- Match the struct definition by name.
 
 ### `Constructor expects N argument(s), got M`
 Meaning:

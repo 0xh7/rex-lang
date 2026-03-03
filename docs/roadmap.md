@@ -7,7 +7,7 @@ This roadmap is focused on practical milestones for the next stages of the langu
 ### Short Term
 - Tighten diagnostics (clearer error messages with better context).
 - Expand parser/typechecker tests for edge cases.
-- Strengthen match semantics and return-flow behavior.
+- Continue polishing mixed lvalue parsing and assignment coverage.
 - Improve generic type inference in complex call chains.
 
 ### Mid Term
@@ -50,6 +50,8 @@ This roadmap is focused on practical milestones for the next stages of the langu
 
 ### Short Term
 - Keep docs aligned with implemented behavior after each major change.
+- Keep syntax guides current as language features such as struct literals,
+  compound assignment, and richer `match` arms expand.
 - Expand guides with more end-to-end examples.
 
 ### Mid Term

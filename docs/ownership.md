@@ -64,6 +64,21 @@ let r = &x
 println(*r)
 ```
 
+The same rule applies to nested mutation paths. The checker uses the root binding
+for safety checks, so member and index mutation are blocked while the owner is
+borrowed.
+
+```rex
+struct Counter { value: i32 }
+
+fn main() {
+    mut items = [Counter.new(1)]
+    let r = &items
+    // items[0].value += 1  // rejected while borrowed
+    println("borrowed")
+}
+```
+
 For references, Rex tracks source and destination when references are reassigned.
 
 ## 5. Lifetimes (Current Checks)

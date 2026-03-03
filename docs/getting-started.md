@@ -61,7 +61,26 @@ lua compiler/cli/rex.lua check examples/hello.rex
 
 If everything is valid, the command prints `OK ...`.
 
-## 5. Create a New Project
+## 5. Try the Newer Syntax Samples
+
+If you want quick examples of the current language surface, run:
+
+```bash
+rex run "C:\rex-lang\rex\examples\test_struct_lit.rex"
+rex run "C:\rex-lang\rex\examples\test_nested_assign.rex"
+rex run "C:\rex-lang\rex\examples\test_multi_match.rex"
+```
+
+From source checkout:
+
+```bash
+cd rex
+lua compiler/cli/rex.lua run examples/test_struct_lit.rex
+lua compiler/cli/rex.lua run examples/test_nested_assign.rex
+lua compiler/cli/rex.lua run examples/test_multi_match.rex
+```
+
+## 6. Create a New Project
 
 Initialize a project folder:
 
@@ -80,7 +99,7 @@ cd rex
 lua compiler/cli/rex.lua init my-app
 ```
 
-## 6. Build and Run Your Own File
+## 7. Build and Run Your Own File
 
 Build to C and native binary (installed Rex):
 
@@ -102,7 +121,7 @@ lua compiler/cli/rex.lua build my-app/src/main.rex
 lua compiler/cli/rex.lua run my-app/src/main.rex
 ```
 
-## 7. Useful Daily Commands
+## 8. Useful Daily Commands
 
 - Format source:
   - `rex fmt path/to/file.rex`
@@ -111,7 +130,7 @@ lua compiler/cli/rex.lua run my-app/src/main.rex
 - Build all examples to generated C:
   - `rex test`
 
-## 8. Where to Go Next
+## 9. Where to Go Next
 
 - Syntax: `docs/syntax.md`
 - Ownership: `docs/ownership.md`

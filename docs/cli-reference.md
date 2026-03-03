@@ -75,6 +75,7 @@ Example:
 
 ```bash
 rex run examples/hello.rex
+rex run examples/test_struct_lit.rex
 ```
 
 ## 4. `bench`
@@ -107,7 +108,9 @@ Build all example files to C.
 rex test
 ```
 
-This validates parsing/typechecking/codegen across the example set.
+This validates parsing/typechecking/codegen across the full example set,
+including regression samples for newer syntax such as struct literals,
+compound assignment, and richer `match` arms.
 
 ## 6. `fmt`
 
@@ -141,6 +144,12 @@ rex check [input]
 
 Default input:
 - `src/main.rex`
+
+Example:
+
+```bash
+rex check examples/test_multi_match.rex
+```
 
 ## 9. Build Modes
 

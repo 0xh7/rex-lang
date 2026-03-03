@@ -11,6 +11,14 @@ This page summarizes every sample program under `rex/examples`.
 - `rex/examples/simple_shadow.rex`: Simple variable shadowing behavior.
 - `rex/examples/test_shadowing.rex`: Multiple shadowing scenarios.
 
+## Language Feature Regression Samples
+
+- `rex/examples/test_compound_assign.rex`: Compound assignment on variables and indexed values.
+- `rex/examples/test_multi_match.rex`: Multi-tag `match` arms.
+- `rex/examples/test_nested_assign.rex`: Nested member assignment, nested calls, and mixed index/member mutation.
+- `rex/examples/test_struct_lit.rex`: Struct literals with named fields.
+- `rex/examples/test_wildcard_match.rex`: Wildcard `match` arms with `_`.
+
 ## Error Handling and Flow
 
 - `rex/examples/result.rex`: Handling `Result` with `match`.

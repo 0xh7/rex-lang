@@ -45,7 +45,7 @@ impl Point {
 }
 
 fn main() {
-    let p = Point.new(3, 4)
+    let p = Point { x: 3, y: 4 }
     println(p.len())
 }
 ```
@@ -86,6 +86,21 @@ Supported flow constructs:
 - `match` for enums and `Result`
 - `return`, `break`, `continue`
 - `defer`
+
+`match` arms support:
+- a single tag, optionally with a binding (`Some(x) => ...`)
+- multiple tags in one arm (`A | B => ...`)
+- a wildcard fallback arm (`_ => ...`)
+
+Assignment forms supported today include:
+- direct assignment (`x = value`)
+- compound assignment (`x += value`, etc.)
+- member assignment (`obj.field = value`)
+- index assignment (`v[i] = value`)
+- nested mixed paths such as `items[0].value += 1`
+
+Struct values can be created through either constructor calls (`Type.new(...)`)
+or named-field literals (`Type { field: value }`).
 
 ## 6. Error Handling
 

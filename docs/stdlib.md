@@ -165,4 +165,6 @@ UI module exposes window/input/widget helpers, including:
 - layout helpers: `row`, `column`, `grid`, spacing, clipping, scrolling
 - themes and image helpers
 
-Check `rex/examples` for practical usage patterns.
+Check `docs/examples-index.md` and `rex/examples` for practical usage patterns,
+including current language syntax such as struct literals, compound assignment,
+and richer `match` forms used alongside these APIs.

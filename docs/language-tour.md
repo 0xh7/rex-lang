@@ -12,7 +12,7 @@ fn add(a: i32, b: i32) -> i32 {
 fn main() {
     let x = 10
     mut y = 20
-    y = y + 1
+    y += 1
     println(add(x, y))
 }
 ```
@@ -34,23 +34,28 @@ impl Point {
 }
 
 fn main() {
-    let p = Point.new(3, 4)
+    let p = Point { x: 3, y: 4 }
     println(p.len())
 }
 ```
 
+You can construct structs with either `Type.new(...)` or a named-field literal.
+
 ## 3. Enums and Match
 
 ```rex
-enum Option { Some(i32), None }
+enum State { Idle, Busy, Done(i32), Fail }
 
-fn show(v: Option) {
+fn show(v: State) {
     match v {
-        Some(x) => println("value = " + x),
-        None => println("empty"),
+        Idle | Busy => println("waiting"),
+        Done(x) => println("value = " + x),
+        _ => println("fallback"),
     }
 }
 ```
+
+`match` supports single-tag bindings, multi-tag arms, and wildcard fallback arms.
 
 ## 4. Result and `?`
 
@@ -79,6 +84,7 @@ fn main() {
 Rules you will feel quickly:
 - You cannot mutate while conflicting borrows are active.
 - Non-copy values can be moved; moved values cannot be reused.
+- Nested writes such as `obj.inner.value += 1` follow the same ownership rules.
 
 ## 6. Defer
 

@@ -33,6 +33,10 @@ Current rollback tracking covers:
 - struct member assignment (`obj.field = ...`)
 - index assignment (`v[i] = ...`)
 
+Compound assignment forms such as `+=`, `-=`, `*=`, `/=`, and `%=` are
+tracked through the same assignment paths. This means operations like
+`score += 1`, `player.hp += 10`, and `v[0] += 3` participate in rollback.
+
 Rollback applies undo in reverse order (last change first).
 
 ## 4. Bond Variable After Rollback
@@ -59,8 +63,8 @@ This keeps rollback behavior predictable and avoids partially moved transactiona
 ```rex
 fn commit_demo() {
     bond score = 0
-    score = 10
-    score = 20
+    score += 10
+    score += 10
     commit
     println("committed")
 }
@@ -74,7 +78,7 @@ struct P { x: i32 }
 fn rollback_demo() {
     mut p = P.new(1)
     bond t = 0
-    p.x = 7
+    p.x += 6
     rollback
     println(p.x) // back to 1
 }
@@ -86,7 +90,7 @@ fn rollback_demo() {
 fn rollback_index() {
     mut v = [10, 20, 30]
     bond t = 0
-    v[1] = 99
+    v[1] += 79
     rollback
     println(v[1]) // back to 20
 }

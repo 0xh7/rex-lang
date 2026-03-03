@@ -76,12 +76,21 @@ p.x = 42
 v[1] = 99
 ```
 
+Compound assignment is supported for variables, member paths, and indexed paths:
+
+```rex
+count += 1
+player.hp -= 10
+items[0].value += 1
+```
+
 ## 5. Expressions
 
 Primary expressions:
 - Numbers, strings, booleans, `nil`
 - Identifiers
 - Arrays: `[1, 2, 3]`
+- Struct literals: `Point { x: 3, y: 4 }`
 - Grouping: `(expr)`
 - Member access: `obj.field`
 - Calls: `f(a, b)`
@@ -151,12 +160,14 @@ for item in values {
 
 ```rex
 match value {
-    Some(x) => println(x),
-    None => println("empty"),
+    Done(x) => println(x),
+    Idle | Busy => println("waiting"),
+    _ => println("fallback"),
 }
 ```
 
 `match` arms can use block bodies or expression-style bodies.
+Bindings are supported on a single concrete tag arm such as `Some(x) => ...`.
 
 ## 7. Advanced Statements
 
