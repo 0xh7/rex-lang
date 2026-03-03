@@ -1045,6 +1045,15 @@ local function own_scope_pop(ctx)
   end
 end
 
+local function find_root_name(node)
+  if node.kind == "Identifier" then
+    return node.name
+  elseif node.kind == "Member" or node.kind == "Index" then
+    return find_root_name(node.object)
+  end
+  return nil
+end
+
 local function own_resolve(ctx, name)
   for i = #ctx.ownership.scopes, 1, -1 do
     local id = ctx.ownership.scopes[i][name]
@@ -1768,6 +1777,44 @@ infer_expr = function(ctx, expr)
     return type_unknown()
   elseif expr.kind == "Generic" then
     return infer_expr(ctx, expr.expr)
+  elseif expr.kind == "StructLit" then
+    local def = ctx.structs[expr.name]
+    if not def then
+      report(ctx, "Unknown struct: " .. expr.name)
+      return type_unknown()
+    end
+    local struct_type = build_struct_type(ctx, expr.name, nil)
+    local known = {}
+    for _, field in ipairs(def.field_list) do
+      known[field.name] = true
+    end
+    local seen = {}
+    for _, f in ipairs(expr.fields or {}) do
+      if not known[f.name] then
+        report(ctx, "Unknown field '" .. f.name .. "' on struct " .. expr.name)
+        infer_expr(ctx, f.value)
+      elseif seen[f.name] then
+        report(ctx, "Duplicate field '" .. f.name .. "' in struct literal " .. expr.name)
+        infer_expr(ctx, f.value)
+      else
+        seen[f.name] = true
+        local field_type = struct_type.fields and struct_type.fields[f.name]
+        if field_type then
+          local value_type = expect_value(ctx, infer_expr(ctx, f.value), "field value")
+          if not type_assignable(field_type, value_type) then
+            report(ctx, "Field '" .. f.name .. "' expects " .. type_to_string(field_type) .. ", got " .. type_to_string(value_type))
+          end
+        else
+          infer_expr(ctx, f.value)
+        end
+      end
+    end
+    for _, field in ipairs(def.field_list) do
+      if not seen[field.name] then
+        report(ctx, "Missing field '" .. field.name .. "' in struct literal " .. expr.name)
+      end
+    end
+    return struct_type
   end
   report(ctx, "Unknown expression kind: " .. tostring(expr.kind))
   return type_unknown()
@@ -2037,21 +2084,39 @@ local function check_match(ctx, stmt)
   end
   local seen = {}
   for _, arm in ipairs(stmt.arms or {}) do
-    if has_allowed then
-      local payload = allowed[arm.tag]
-      if payload == nil then
-        report(ctx, "Unknown match arm tag: " .. arm.tag)
-      elseif seen[arm.tag] then
-        report(ctx, "Duplicate match arm tag: " .. arm.tag)
+   
+    if arm.wildcard then
+      scope_push(ctx)
+      own_scope_push(ctx)
+      if arm.body then
+        check_block(ctx, arm.body, false)
       end
-      seen[arm.tag] = true
+      own_scope_pop(ctx)
+      scope_pop(ctx)
+    elseif has_allowed then
+    
+      local tags = arm.tags or { arm.tag }
+      local first_payload = nil
+      for _, tag in ipairs(tags) do
+        local payload = allowed[tag]
+        if payload == nil then
+          report(ctx, "Unknown match arm tag: " .. tag)
+        elseif seen[tag] then
+          report(ctx, "Duplicate match arm tag: " .. tag)
+        end
+        seen[tag] = true
+        if first_payload == nil then
+          first_payload = payload
+        end
+      end
       scope_push(ctx)
       own_scope_push(ctx)
       if arm.binding then
-        if payload == false then
-          report(ctx, "Match arm " .. arm.tag .. " has no payload")
+      
+        if first_payload == false then
+          report(ctx, "Match arm " .. (arm.tag or tags[1]) .. " has no payload")
         else
-          local info = { type = payload, mutable = false }
+          local info = { type = first_payload or type_unknown(), mutable = false }
           scope_set(ctx, arm.binding, info)
           own_bind(ctx, arm.binding, info)
         end
@@ -2110,7 +2175,7 @@ local function ownership_trace_record(ctx, variable, event)
   end
   table.insert(ctx.ownership_traces, {
     variable = variable,
-    event = event,  -- "created", "moved", "borrowed", "used", "freed"
+    event = event,  
     timestamp = os.time()
   })
 end
@@ -2289,7 +2354,7 @@ local function check_statement(ctx, stmt)
       report(ctx, "Cannot assign to immutable variable: " .. stmt.name)
     end
     
-    -- RULE 2: Inside active bond  only allow assign (no move)
+
     if ctx.active_bond and ctx.bonds[ctx.active_bond] then
       local bond = ctx.bonds[ctx.active_bond]
       if bond.status == "active" and stmt.value then
@@ -2401,31 +2466,32 @@ local function check_statement(ctx, stmt)
       })
     end
   elseif stmt.kind == "MemberAssign" then
+    local root_name = find_root_name(stmt.object)
+    local info = root_name and scope_get(ctx, root_name) or nil
+    if info and not info.mutable then
+      report(ctx, "Cannot assign to field of immutable variable: " .. root_name)
+    end
+    if root_name then
+      local id = own_resolve(ctx, root_name)
+      local var = id and ctx.ownership.vars[id]
+      if var then
+        if var.moved then
+          report(ctx, root_name .. " was moved")
+        end
+        if (var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0) then
+          report(ctx, "Cannot assign to " .. root_name .. " while it is borrowed")
+        end
+      end
+    end
     local obj_type = nil
     if stmt.object.kind == "Identifier" then
-      local info = scope_get(ctx, stmt.object.name)
-      if info then
-        obj_type = info.type
+      local object_info = scope_get(ctx, stmt.object.name)
+      if object_info then
+        obj_type = object_info.type
       end
     end
     if not obj_type then
       obj_type = infer_expr(ctx, stmt.object)
-    end
-    local info = stmt.object.kind == "Identifier" and scope_get(ctx, stmt.object.name) or nil
-    if info and not info.mutable then
-      report(ctx, "Cannot assign to field of immutable variable: " .. stmt.object.name)
-    end
-    if stmt.object.kind == "Identifier" then
-      local id = own_resolve(ctx, stmt.object.name)
-      local var = id and ctx.ownership.vars[id]
-      if var then
-        if var.moved then
-          report(ctx, stmt.object.name .. " was moved")
-        end
-        if (var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0) then
-          report(ctx, "Cannot assign to " .. stmt.object.name .. " while it is borrowed")
-        end
-      end
     end
     if obj_type.kind == "struct" then
       local field_type = obj_type.fields and obj_type.fields[stmt.property]
@@ -2445,38 +2511,39 @@ local function check_statement(ctx, stmt)
     if ctx.active_bond and ctx.bonds[ctx.active_bond] then
       table.insert(ctx.bonds[ctx.active_bond].actions, {
         kind = "member_assign",
-        target = stmt.object.name,
+        target = root_name or (stmt.object.kind == "Identifier" and stmt.object.name) or "?",
         field = stmt.property,
         line = stmt.line,
         inverse = "undo_member_assign"
       })
     end
   elseif stmt.kind == "IndexAssign" then
+    local root_name = find_root_name(stmt.object)
+    local info = root_name and scope_get(ctx, root_name) or nil
+    if info and not info.mutable then
+      report(ctx, "Cannot assign to index of immutable variable: " .. root_name)
+    end
+    if root_name then
+      local id = own_resolve(ctx, root_name)
+      local var = id and ctx.ownership.vars[id]
+      if var then
+        if var.moved then
+          report(ctx, root_name .. " was moved")
+        end
+        if (var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0) then
+          report(ctx, "Cannot assign to " .. root_name .. " while it is borrowed")
+        end
+      end
+    end
     local obj_type = nil
     if stmt.object.kind == "Identifier" then
-      local info = scope_get(ctx, stmt.object.name)
-      if info then
-        obj_type = info.type
+      local object_info = scope_get(ctx, stmt.object.name)
+      if object_info then
+        obj_type = object_info.type
       end
     end
     if not obj_type then
       obj_type = infer_expr(ctx, stmt.object)
-    end
-    local info = stmt.object.kind == "Identifier" and scope_get(ctx, stmt.object.name) or nil
-    if info and not info.mutable then
-      report(ctx, "Cannot assign to index of immutable variable: " .. stmt.object.name)
-    end
-    if stmt.object.kind == "Identifier" then
-      local id = own_resolve(ctx, stmt.object.name)
-      local var = id and ctx.ownership.vars[id]
-      if var then
-        if var.moved then
-          report(ctx, stmt.object.name .. " was moved")
-        end
-        if (var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0) then
-          report(ctx, "Cannot assign to " .. stmt.object.name .. " while it is borrowed")
-        end
-      end
     end
     local index_type = expect_value(ctx, infer_expr(ctx, stmt.index), "index")
     local value_type = expect_value(ctx, infer_expr(ctx, stmt.value), "index value")
@@ -2500,7 +2567,7 @@ local function check_statement(ctx, stmt)
     if ctx.active_bond and ctx.bonds[ctx.active_bond] then
       table.insert(ctx.bonds[ctx.active_bond].actions, {
         kind = "index_assign",
-        target = stmt.object.name,
+        target = root_name or (stmt.object.kind == "Identifier" and stmt.object.name) or "?",
         line = stmt.line,
         inverse = "undo_index_assign"
       })
@@ -2556,6 +2623,7 @@ local function check_statement(ctx, stmt)
     end
   elseif stmt.kind == "ExprStmt" then
     infer_expr(ctx, stmt.expr)
+    own_release_temp(ctx)
   elseif stmt.kind == "If" then
     local cond_type = expect_value(ctx, infer_expr(ctx, stmt.cond), "if condition")
     expect_bool(ctx, cond_type, "If condition")

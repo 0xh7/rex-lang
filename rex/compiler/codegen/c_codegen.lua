@@ -597,6 +597,10 @@ function Codegen.generate(ast, opts)
         collect_expr(expr.finish)
       elseif expr.kind == "Generic" then
         collect_expr(expr.expr)
+      elseif expr.kind == "StructLit" then
+        for _, f in ipairs(expr.fields or {}) do
+          collect_expr(f.value)
+        end
       end
     end
 
@@ -696,6 +700,33 @@ function Codegen.generate(ast, opts)
       return false
     end
     return frame.allow_tail_return and frame.index == frame.count
+  end
+
+ 
+  local function infer_member_struct_name(expr)
+    if expr.kind == "Identifier" then
+      local vtype = scope_get(ctx, expr.name)
+      if vtype and type(vtype) == "string" and vtype:match("^struct:") then
+        return vtype:sub(8)
+      end
+      return nil
+    elseif expr.kind == "Member" then
+      local parent_struct = infer_member_struct_name(expr.object)
+      if not parent_struct then return nil end
+      local def = ctx.structs[parent_struct]
+      if not def then return nil end
+      for _, field in ipairs(def.fields) do
+        if field.name == expr.property then
+          local base = type_base(field.type)
+          if base and ctx.structs[base] then
+            return base
+          end
+          return nil
+        end
+      end
+      return nil
+    end
+    return nil
   end
 
   local function emit_expr_raw(expr)
@@ -831,6 +862,19 @@ function Codegen.generate(ast, opts)
             end
           end
         end
+     
+        local nested_struct = infer_member_struct_name(obj)
+        if nested_struct then
+          local method_map = ctx.method_map[nested_struct] or {}
+          local method = method_map[prop]
+          if method then
+            local call_args = { obj_expr }
+            for _, arg in ipairs(args) do
+              table.insert(call_args, arg)
+            end
+            return method .. "(" .. table.concat(call_args, ", ") .. ")"
+          end
+        end
         return "(rex_panic(\"unknown member call\"), rex_nil())"
       end
 
@@ -866,6 +910,23 @@ function Codegen.generate(ast, opts)
       return "rex_try(" .. emit_expr_raw(expr.expr) .. ")"
     elseif expr.kind == "Generic" then
       return emit_expr_raw(expr.expr)
+    elseif expr.kind == "StructLit" then
+    
+      local struct_def = ctx.structs[expr.name]
+      if not struct_def then
+        error("Unknown struct in literal: " .. expr.name)
+      end
+      local ctor = ctx.struct_ctors[expr.name]
+      local by_name = {}
+      for _, f in ipairs(expr.fields) do
+        by_name[f.name] = f.value
+      end
+      local args = {}
+      for _, field in ipairs(struct_def.fields) do
+        local val_node = by_name[field.name]
+        table.insert(args, val_node and emit_expr_raw(val_node) or "rex_nil()")
+      end
+      return ctor .. "(" .. table.concat(args, ", ") .. ")"
     end
     error("Unhandled expression kind: " .. tostring(expr.kind))
   end
@@ -1024,6 +1085,19 @@ function Codegen.generate(ast, opts)
             end
           end
         end
+     
+        local nested_struct = infer_member_struct_name(obj)
+        if nested_struct then
+          local method_map = ctx.method_map[nested_struct] or {}
+          local method = method_map[prop]
+          if method then
+            local call_args = { obj_expr }
+            for _, arg in ipairs(args) do
+              table.insert(call_args, arg)
+            end
+            return method .. "(" .. table.concat(call_args, ", ") .. ")"
+          end
+        end
         return "(rex_panic(\"unknown member call\"), rex_nil())"
       end
 
@@ -1057,6 +1131,23 @@ function Codegen.generate(ast, opts)
       return "rex_collections_slice(" .. emit_expr(expr.object) .. ", " .. emit_expr(expr.start) .. ", " .. finish .. ")"
     elseif expr.kind == "Generic" then
       return emit_expr(expr.expr)
+    elseif expr.kind == "StructLit" then
+     
+      local struct_def = ctx.structs[expr.name]
+      if not struct_def then
+        error("Unknown struct in literal: " .. expr.name)
+      end
+      local ctor = ctx.struct_ctors[expr.name]
+      local by_name = {}
+      for _, f in ipairs(expr.fields) do
+        by_name[f.name] = f.value
+      end
+      local args = {}
+      for _, field in ipairs(struct_def.fields) do
+        local val_node = by_name[field.name]
+        table.insert(args, val_node and emit_expr(val_node) or "rex_nil()")
+      end
+      return ctor .. "(" .. table.concat(args, ", ") .. ")"
     end
     error("Unhandled expression kind: " .. tostring(expr.kind))
   end
@@ -1211,6 +1302,10 @@ function Codegen.generate(ast, opts)
   local function infer_struct_name(expr)
     if not expr then
       return nil
+    end
+    
+    if expr.kind == "StructLit" and ctx.structs[expr.name] then
+      return expr.name
     end
     if expr.kind == "Call" then
       local callee = expr.callee
@@ -1527,13 +1622,28 @@ function Codegen.generate(ast, opts)
       indent_line(ctx, "{")
       ctx.indent = ctx.indent + 1
       indent_line(ctx, "RexValue " .. tmp .. " = " .. emit_expr(stmt.expr) .. ";")
-      for i, arm in ipairs(stmt.arms) do
-        local cond = "rex_tag_is(" .. tmp .. ", " .. c_string(arm.tag) .. ")"
-        if i == 1 then
-          indent_line(ctx, "if (" .. cond .. ") {")
+
+      
+      local has_wildcard = false
+      for _, arm in ipairs(stmt.arms) do
+        if arm.wildcard then has_wildcard = true end
+      end
+
+      local first_arm = true
+      for _, arm in ipairs(stmt.arms) do
+        if arm.wildcard then
+          indent_line(ctx, first_arm and "{" or "else {")
         else
-          indent_line(ctx, "else if (" .. cond .. ") {")
+          local tags = arm.tags or { arm.tag }
+          local parts = {}
+          for _, tag in ipairs(tags) do
+            table.insert(parts, "rex_tag_is(" .. tmp .. ", " .. c_string(tag) .. ")")
+          end
+          local cond = table.concat(parts, " || ")
+          indent_line(ctx, (first_arm and "if" or "else if") .. " (" .. cond .. ") {")
         end
+        first_arm = false
+
         ctx.indent = ctx.indent + 1
         if arm.binding then
           local c_name = get_c_name(ctx, arm.binding)
@@ -1582,11 +1692,14 @@ function Codegen.generate(ast, opts)
         ctx.indent = ctx.indent - 1
         indent_line(ctx, "}")
       end
-      indent_line(ctx, "else {")
-      ctx.indent = ctx.indent + 1
-      indent_line(ctx, "rex_panic(\"non-exhaustive match\");")
-      ctx.indent = ctx.indent - 1
-      indent_line(ctx, "}")
+
+      if not has_wildcard then
+        indent_line(ctx, "else {")
+        ctx.indent = ctx.indent + 1
+        indent_line(ctx, "rex_panic(\"non-exhaustive match\");")
+        ctx.indent = ctx.indent - 1
+        indent_line(ctx, "}")
+      end
       ctx.indent = ctx.indent - 1
       indent_line(ctx, "}")
 

@@ -53,6 +53,7 @@ local schema = {
   Slice = { required = { "object", "start" }, optional = { "finish" } },
   Try = { required = { "expr" } },
   Generic = { required = { "expr", "type_args" } },
+  StructLit = { required = { "name", "fields" } },
 
   TemporalValue = { required = { "name", "value", "lifetime" } },
   OwnershipTrace = { required = { "variable", "event" } },

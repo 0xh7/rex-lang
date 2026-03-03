@@ -4,6 +4,15 @@ local ast = require("compiler.ast")
 local Parser = {}
 Parser.__index = Parser
 
+
+local COMPOUND_OPS = {
+  ["+="] = "+",
+  ["-="] = "-",
+  ["*="] = "*",
+  ["/="] = "/",
+  ["%="] = "%",
+}
+
 local PRECEDENCE = {
   ["||"] = 1,
   ["&&"] = 2,
@@ -434,6 +443,29 @@ function Parser:parse_statement()
     })
   end
 
+  
+  if self:is_index_compound_assign_ahead() then
+    local name = self:expect_kind("ident").value
+    local obj = ast.node("Identifier", { name = name })
+    self:expect("[")
+    local index = self:parse_expression()
+    self:expect("]")
+    local bin_op = COMPOUND_OPS[self:current().value]
+    self:advance()
+    local rhs = self:parse_expression()
+    self:match(";")
+    return ast.node("IndexAssign", {
+      object = obj,
+      index = index,
+      value = ast.node("Binary", {
+        op = bin_op,
+        left = ast.node("Index", { object = obj, index = index }),
+        right = rhs,
+      }),
+    })
+  end
+
+
   if self:current().kind == "ident" and self:peek(1).value == "=" then
     local name = self:expect_kind("ident").value
     self:expect("=")
@@ -442,23 +474,47 @@ function Parser:parse_statement()
     return ast.node("Assign", { name = name, value = value })
   end
 
-  if self:current().kind == "ident"
-    and self:peek(1).value == "."
-    and self:peek(2).kind == "ident"
-    and self:peek(3).value == "="
-  then
+
+  if self:current().kind == "ident" and COMPOUND_OPS[self:peek(1).value] then
     local name = self:expect_kind("ident").value
-    self:expect(".")
-    local prop = self:expect_kind("ident").value
+    local bin_op = COMPOUND_OPS[self:current().value]
+    self:advance()
+    local rhs = self:parse_expression()
+    self:match(";")
+    return ast.node("Assign", {
+      name = name,
+      value = ast.node("Binary", {
+        op = bin_op,
+        left = ast.node("Identifier", { name = name }),
+        right = rhs,
+      }),
+    })
+  end
+
+  
+  if self:is_member_assign_ahead() then
+    local obj, prop = self:parse_member_lvalue()
     self:expect("=")
     local value = self:parse_expression()
     self:match(";")
+    return ast.node("MemberAssign", { object = obj, property = prop, value = value })
+  end
+
+  
+  if self:is_member_compound_assign_ahead() then
+    local obj, prop = self:parse_member_lvalue()
+    local bin_op = COMPOUND_OPS[self:current().value]
+    self:advance()
+    local rhs = self:parse_expression()
+    self:match(";")
+    local lval = ast.node("Member", { object = obj, property = prop })
     return ast.node("MemberAssign", {
-      object = ast.node("Identifier", { name = name }),
+      object = obj,
       property = prop,
-      value = value,
+      value = ast.node("Binary", { op = bin_op, left = lval, right = rhs }),
     })
   end
+
 
   if self:current().value == "*" and self:peek(1).kind == "ident" and self:peek(2).value == "=" then
     self:advance()
@@ -472,6 +528,66 @@ function Parser:parse_statement()
   local expr = self:parse_expression()
   self:match(";")
   return ast.node("ExprStmt", { expr = expr })
+end
+
+function Parser:is_member_assign_ahead()
+  if self:current().kind ~= "ident" then return false end
+  if self:peek(1).value ~= "." then return false end
+  local i = 2
+  while true do
+    if self:peek(i).kind ~= "ident" then return false end
+    i = i + 1
+    if self:peek(i).value == "=" then return true end
+    if self:peek(i).value ~= "." then return false end
+    i = i + 1
+  end
+end
+
+
+function Parser:is_member_compound_assign_ahead()
+  if self:current().kind ~= "ident" then return false end
+  if self:peek(1).value ~= "." then return false end
+  local i = 2
+  while true do
+    if self:peek(i).kind ~= "ident" then return false end
+    i = i + 1
+    if COMPOUND_OPS[self:peek(i).value] then return true end
+    if self:peek(i).value ~= "." then return false end
+    i = i + 1
+  end
+end
+
+
+function Parser:is_index_compound_assign_ahead()
+  if self:current().kind ~= "ident" or self:peek(1).value ~= "[" then return false end
+  local depth = 0
+  local i = 1
+  while true do
+    local tok = self:peek(i)
+    if not tok or tok.kind == "eof" then return false end
+    if tok.value == "[" then
+      depth = depth + 1
+    elseif tok.value == "]" then
+      depth = depth - 1
+      if depth == 0 then
+        return COMPOUND_OPS[self:peek(i + 1).value] ~= nil
+      end
+    end
+    i = i + 1
+  end
+end
+
+
+function Parser:parse_member_lvalue()
+  local obj = ast.node("Identifier", { name = self:expect_kind("ident").value })
+  self:expect(".")
+  local prop = self:expect_kind("ident").value
+  while self:peek(0).value == "." do
+    obj = ast.node("Member", { object = obj, property = prop })
+    self:expect(".")
+    prop = self:expect_kind("ident").value
+  end
+  return obj, prop
 end
 
 function Parser:is_index_assign_ahead()
@@ -539,12 +655,25 @@ function Parser:parse_match()
   self:expect("{")
   local arms = {}
   while not self:match("}") do
-    local tag = self:expect_kind("ident").value
+    if #arms > 0 and arms[#arms].wildcard then
+      self:error("Wildcard '_' must be the last arm in a match expression")
+    end
+   
+    local tags = { self:expect_kind("ident").value }
+    while self:match("|") do
+      table.insert(tags, self:expect_kind("ident").value)
+    end
+
+ 
+    local wildcard = (#tags == 1 and tags[1] == "_")
+
+  
     local binding = nil
-    if self:match("(") then
+    if not wildcard and #tags == 1 and self:match("(") then
       binding = self:expect_kind("ident").value
       self:expect(")")
     end
+
     self:expect("=>")
     local body = nil
     if self:current().value == "{" then
@@ -553,7 +682,14 @@ function Parser:parse_match()
       local expr_body = self:parse_expression()
       body = ast.node("Block", { statements = { ast.node("ExprStmt", { expr = expr_body }) } })
     end
-    table.insert(arms, { tag = tag, binding = binding, body = body })
+ 
+    table.insert(arms, {
+      tag = tags[1],
+      tags = tags,
+      wildcard = wildcard,
+      binding = binding,
+      body = body,
+    })
     self:match(",")
   end
   if #arms == 0 then
@@ -806,6 +942,26 @@ function Parser:parse_primary()
     return ast.node("Array", { elements = elements })
   end
   if tok.kind == "ident" then
+    
+    if self:peek(1).value == "{" then
+      local after_brace = self:peek(2)
+      if after_brace.value == "}" or
+         (after_brace.kind == "ident" and self:peek(3).value == ":") then
+        self:advance() 
+        self:expect("{")
+        local fields = {}
+        if not self:match("}") then
+          repeat
+            local fname = self:expect_kind("ident").value
+            self:expect(":")
+            local fval = self:parse_expression()
+            table.insert(fields, { name = fname, value = fval })
+          until not self:match(",")
+          self:expect("}")
+        end
+        return ast.node("StructLit", { name = tok.value, fields = fields })
+      end
+    end
     self:advance()
     return ast.node("Identifier", { name = tok.value })
   end

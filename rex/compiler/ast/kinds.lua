@@ -50,6 +50,7 @@ local groups = {
     "Slice",
     "Try",
     "Generic",
+    "StructLit",
   },
   pattern = {
     "TuplePattern",

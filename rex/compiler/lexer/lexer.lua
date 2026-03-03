@@ -213,6 +213,11 @@ function Lexer:next_token()
     ["&&"] = true,
     ["||"] = true,
     [".."] = true,
+    ["+="] = true,
+    ["-="] = true,
+    ["*="] = true,
+    ["/="] = true,
+    ["%="] = true,
   }
   if double_symbols[two] then
     self:advance()
