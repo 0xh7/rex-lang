@@ -822,6 +822,33 @@ local modules = {
   },
   fmt = {
     format = builtins.format,
+    pad_left = sig({ type_var("T"), type_num(), type_ref(type_str(), false) }, type_str(), { "T" }),
+    pad_right = sig({ type_var("T"), type_num(), type_ref(type_str(), false) }, type_str(), { "T" }),
+    join = sig({ type_ref(type_vec(type_str()), false), type_ref(type_str(), false) }, type_str()),
+    fixed = sig({ type_num(), type_num() }, type_str()),
+    hex = sig({ type_num() }, type_str()),
+    bin = sig({ type_num() }, type_str()),
+  },
+  text = {
+    initials = sig({ type_ref(type_str(), false) }, type_str()),
+    lower_ascii = sig({ type_ref(type_str(), false) }, type_str()),
+    pad_left = sig({ type_ref(type_str(), false), type_num(), type_ref(type_str(), false) }, type_str()),
+    pad_right = sig({ type_ref(type_str(), false), type_num(), type_ref(type_str(), false) }, type_str()),
+    trim = sig({ type_ref(type_str(), false) }, type_str()),
+    trim_start = sig({ type_ref(type_str(), false) }, type_str()),
+    trim_end = sig({ type_ref(type_str(), false) }, type_str()),
+    split_words = sig({ type_ref(type_str(), false) }, type_vec(type_str())),
+    starts_with = sig({ type_ref(type_str(), false), type_ref(type_str(), false) }, type_bool()),
+    ends_with = sig({ type_ref(type_str(), false), type_ref(type_str(), false) }, type_bool()),
+    contains = sig({ type_ref(type_str(), false), type_ref(type_str(), false) }, type_bool()),
+    replace = sig({ type_ref(type_str(), false), type_ref(type_str(), false), type_ref(type_str(), false) }, type_str()),
+    ["repeat"] = sig({ type_ref(type_str(), false), type_num() }, type_str()),
+    lines = sig({ type_ref(type_str(), false) }, type_vec(type_str())),
+    upper_ascii = sig({ type_ref(type_str(), false) }, type_str()),
+    is_empty = sig({ type_ref(type_str(), false) }, type_bool()),
+    len_bytes = sig({ type_ref(type_str(), false) }, type_num()),
+    index_of = sig({ type_ref(type_str(), false), type_ref(type_str(), false) }, type_num()),
+    last_index_of = sig({ type_ref(type_str(), false), type_ref(type_str(), false) }, type_num()),
   },
   mem = {
     alloc = builtins.alloc,
@@ -847,16 +874,29 @@ local modules = {
     vec_pop = sig({ type_ref(type_vec(type_var("T")), true) }, type_var("T"), { "T" }),
     vec_clear = sig({ type_ref(type_vec(type_var("T")), true) }, type_void(), { "T" }),
     vec_sort = sig({ type_ref(type_vec(type_var("T")), true) }, type_void(), { "T" }),
+    vec_find = sig({ type_ref(type_vec(type_var("T")), false), type_var("T") }, type_num(), { "T" }),
+    vec_any = sig({ type_ref(type_vec(type_var("T")), false), type_var("T") }, type_bool(), { "T" }),
+    vec_all = sig({ type_ref(type_vec(type_var("T")), false), type_var("T") }, type_bool(), { "T" }),
+    vec_contains = sig({ type_ref(type_vec(type_var("T")), false), type_var("T") }, type_bool(), { "T" }),
+    vec_remove_at = sig({ type_ref(type_vec(type_var("T")), true), type_num() }, type_var("T"), { "T" }),
+    vec_reverse = sig({ type_ref(type_vec(type_var("T")), true) }, type_void(), { "T" }),
+    vec_first = sig({ type_ref(type_vec(type_var("T")), false) }, type_var("T"), { "T" }),
+    vec_last = sig({ type_ref(type_vec(type_var("T")), false) }, type_var("T"), { "T" }),
+    vec_join = sig({ type_ref(type_vec(type_str()), false), type_ref(type_str(), false) }, type_str()),
     map_new = sig({}, type_map(type_var("K"), type_var("V")), { "K", "V" }),
     map_put = sig({ type_ref(type_map(type_var("K"), type_var("V")), true), type_var("K"), type_var("V") }, type_void(), { "K", "V" }),
     map_get = sig({ type_ref(type_map(type_var("K"), type_var("V")), false), type_var("K") }, type_var("V"), { "K", "V" }),
     map_remove = sig({ type_ref(type_map(type_var("K"), type_var("V")), true), type_var("K") }, type_bool(), { "K", "V" }),
     map_has = sig({ type_ref(type_map(type_var("K"), type_var("V")), false), type_var("K") }, type_bool(), { "K", "V" }),
     map_keys = sig({ type_ref(type_map(type_var("K"), type_var("V")), false) }, type_vec(type_var("K")), { "K", "V" }),
+    map_values = sig({ type_ref(type_map(type_var("K"), type_var("V")), false) }, type_vec(type_var("V")), { "K", "V" }),
+    map_items = sig({ type_ref(type_map(type_var("K"), type_var("V")), false) }, type_vec(type_tuple({ type_var("K"), type_var("V") })), { "K", "V" }),
+    map_len = sig({ type_ref(type_map(type_var("K"), type_var("V")), false) }, type_num(), { "K", "V" }),
     set_new = sig({}, type_set(type_var("T")), { "T" }),
     set_add = sig({ type_ref(type_set(type_var("T")), true), type_var("T") }, type_void(), { "T" }),
     set_has = sig({ type_ref(type_set(type_var("T")), false), type_var("T") }, type_bool(), { "T" }),
     set_remove = sig({ type_ref(type_set(type_var("T")), true), type_var("T") }, type_bool(), { "T" }),
+    set_len = sig({ type_ref(type_set(type_var("T")), false) }, type_num(), { "T" }),
   },
   os = {
     getenv = sig({ type_ref(type_str(), false) }, type_any()),
@@ -916,6 +956,12 @@ local modules = {
   result = {
     Ok = builtins.Ok,
     Err = builtins.Err,
+    is_ok = sig({ type_result(type_var("T"), type_var("E")) }, type_bool(), { "T", "E" }),
+    is_err = sig({ type_result(type_var("T"), type_var("E")) }, type_bool(), { "T", "E" }),
+    unwrap_or = sig({ type_result(type_var("T"), type_var("E")), type_var("T") }, type_var("T"), { "T", "E" }),
+    unwrap_or_else = sig({ type_result(type_var("T"), type_var("E")), type_var("T") }, type_var("T"), { "T", "E" }),
+    ok_or = sig({ type_var("T"), type_var("E") }, type_result(type_var("T"), type_var("E")), { "T", "E" }),
+    expect = sig({ type_result(type_var("T"), type_var("E")), type_ref(type_str(), false) }, type_var("T"), { "T", "E" }),
   },
   ui = {
     begin = sig({ type_any(), type_num(), type_num() }, type_bool()),
@@ -1138,21 +1184,31 @@ local function own_bind(ctx, name, info, opts)
   return id
 end
 
+local report_moved_value
+local report_move_while_mut_borrowed
+local report_move_while_borrowed
+local report_mut_borrow_immutable
+local report_mut_borrow_while_borrowed
+local report_imm_borrow_while_mut_borrowed
+local report_assign_while_borrowed
+local report_missing_borrow
+local report_move_inside_bond
+
 local function own_mark_moved(ctx, id, where)
   local var = ctx.ownership.vars[id]
   if not var then
     return
   end
   if var.moved then
-    report(ctx, (where or var.name) .. " was moved")
+    report_moved_value(ctx, where or var.name, var.name)
     return
   end
   if var.borrow_mut and var.borrow_mut > 0 then
-    report(ctx, "Cannot move " .. var.name .. " while it is mutably borrowed")
+    report_move_while_mut_borrowed(ctx, var.name)
     return
   end
   if var.borrow_imm and var.borrow_imm > 0 then
-    report(ctx, "Cannot move " .. var.name .. " while it is borrowed")
+    report_move_while_borrowed(ctx, var.name)
     return
   end
   if var.ref_target then
@@ -1170,7 +1226,7 @@ local function own_use_value(ctx, name, where)
   end
   local var = ctx.ownership.vars[id]
   if var.moved then
-    report(ctx, (where or name) .. " was moved")
+    report_moved_value(ctx, where or name, name)
     return
   end
   if ctx.ownership.defer_mode then
@@ -1194,21 +1250,21 @@ local function own_can_borrow(ctx, id, is_mut, where)
     return false
   end
   if var.moved then
-    report(ctx, (where or var.name) .. " was moved")
+    report_moved_value(ctx, where or var.name, var.name)
     return false
   end
   if is_mut then
     if not var.mutable then
-      report(ctx, "Cannot take &mut of immutable " .. var.name)
+      report_mut_borrow_immutable(ctx, var.name)
       return false
     end
     if (var.borrow_mut and var.borrow_mut > 0) or (var.borrow_imm and var.borrow_imm > 0) then
-      report(ctx, "Cannot take &mut " .. var.name .. " while borrowed")
+      report_mut_borrow_while_borrowed(ctx, var.name)
       return false
     end
   else
     if var.borrow_mut and var.borrow_mut > 0 then
-      report(ctx, "Cannot take &" .. var.name .. " while mutably borrowed")
+      report_imm_borrow_while_mut_borrowed(ctx, var.name)
       return false
     end
   end
@@ -1314,9 +1370,89 @@ local function own_apply_defer_uses(base, uses)
   end
 end
 
-report = function(ctx, msg)
+report = function(ctx, msg, opts)
   local prefix = ctx.current_func or "<top>"
-  table.insert(ctx.errors, prefix .. ": " .. msg)
+  if type(opts) ~= "table" then
+    table.insert(ctx.errors, prefix .. ": " .. msg)
+    return
+  end
+
+  local parts = {}
+  local head = prefix .. ": "
+  if opts.code then
+    head = head .. "[" .. opts.code .. "] "
+  end
+  head = head .. msg
+  table.insert(parts, head)
+  if opts.help and opts.help ~= "" then
+    table.insert(parts, "  help: " .. opts.help)
+  end
+  table.insert(ctx.errors, table.concat(parts, "\n"))
+end
+
+report_moved_value = function(ctx, label, name)
+  local display = label or name
+  local target = name or display
+  report(ctx, display .. " was moved", {
+    code = "E0601",
+    help = "Borrow it with &" .. target .. " for read-only use, or avoid reusing it after transfer.",
+  })
+end
+
+report_move_while_mut_borrowed = function(ctx, name)
+  report(ctx, "Cannot move " .. name .. " while it is mutably borrowed", {
+    code = "E0602",
+    help = "End the active &mut borrow before moving " .. name .. ", or use a separate temporary value.",
+  })
+end
+
+report_move_while_borrowed = function(ctx, name)
+  report(ctx, "Cannot move " .. name .. " while it is borrowed", {
+    code = "E0603",
+    help = "Keep the borrow short-lived, or borrow " .. name .. " again instead of moving it.",
+  })
+end
+
+report_mut_borrow_immutable = function(ctx, name)
+  report(ctx, "Cannot take &mut of immutable " .. name, {
+    code = "E0604",
+    help = "Declare " .. name .. " as mut before borrowing it mutably, or take an immutable borrow with &" .. name .. ".",
+  })
+end
+
+report_mut_borrow_while_borrowed = function(ctx, name)
+  report(ctx, "Cannot take &mut " .. name .. " while borrowed", {
+    code = "E0605",
+    help = "Drop existing borrows of " .. name .. " before taking &mut, or split the operation into separate scopes.",
+  })
+end
+
+report_imm_borrow_while_mut_borrowed = function(ctx, name)
+  report(ctx, "Cannot take &" .. name .. " while mutably borrowed", {
+    code = "E0606",
+    help = "Finish the active &mut borrow of " .. name .. " before taking another borrow.",
+  })
+end
+
+report_assign_while_borrowed = function(ctx, name)
+  report(ctx, "Cannot assign to " .. name .. " while it is borrowed", {
+    code = "E0607",
+    help = "Assign after all borrows of " .. name .. " end, or write through the active mutable reference instead.",
+  })
+end
+
+report_missing_borrow = function(ctx, where, expected)
+  report(ctx, (where or "argument") .. " expects " .. type_to_string(expected) .. "; use &", {
+    code = "E0608",
+    help = "Pass a borrow such as &value or &mut value to match the parameter type.",
+  })
+end
+
+report_move_inside_bond = function(ctx)
+  report(ctx, "cannot move value inside active bond (only Copy types allowed)", {
+    code = "E0701",
+    help = "Keep bond mutations on copy-like values, or move the non-Copy transfer outside the active bond.",
+  })
 end
 
 local function expect_value(ctx, t, where)
@@ -1491,7 +1627,7 @@ local function infer_arg_type(ctx, expected, arg, where)
     if info and info.type and info.type.kind == "ref" then
       return info.type
     end
-    report(ctx, (where or "argument") .. " expects " .. type_to_string(expected) .. "; use &")
+    report_missing_borrow(ctx, where, expected)
     if info then
       return info.type
     end
@@ -2364,7 +2500,7 @@ local function check_statement(ctx, stmt)
           if src_info and src_info.type then
          
             if not type_is_copy(src_info.type) then
-              report(ctx, "cannot move value inside active bond (only Copy types allowed)")
+              report_move_inside_bond(ctx)
             end
           end
         end
@@ -2374,10 +2510,10 @@ local function check_statement(ctx, stmt)
     local id = own_resolve(ctx, stmt.name)
     local var = id and ctx.ownership.vars[id] or nil
     if var and var.moved and not info.mutable then
-      report(ctx, stmt.name .. " was moved")
+      report_moved_value(ctx, stmt.name, stmt.name)
     end
     if var and ((var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0)) then
-      report(ctx, "Cannot assign to " .. stmt.name .. " while it is borrowed")
+      report_assign_while_borrowed(ctx, stmt.name)
     end
     local value_type = nil
     local ref_target = nil
@@ -2409,7 +2545,7 @@ local function check_statement(ctx, stmt)
         transfer_from = own_resolve(ctx, stmt.value.name)
         local src_var = transfer_from and ctx.ownership.vars[transfer_from]
         if src_var and src_var.moved then
-          report(ctx, stmt.value.name .. " was moved")
+          report_moved_value(ctx, stmt.value.name, stmt.value.name)
         end
       end
     end
@@ -2476,10 +2612,10 @@ local function check_statement(ctx, stmt)
       local var = id and ctx.ownership.vars[id]
       if var then
         if var.moved then
-          report(ctx, root_name .. " was moved")
+          report_moved_value(ctx, root_name, root_name)
         end
         if (var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0) then
-          report(ctx, "Cannot assign to " .. root_name .. " while it is borrowed")
+          report_assign_while_borrowed(ctx, root_name)
         end
       end
     end
@@ -2528,10 +2664,10 @@ local function check_statement(ctx, stmt)
       local var = id and ctx.ownership.vars[id]
       if var then
         if var.moved then
-          report(ctx, root_name .. " was moved")
+          report_moved_value(ctx, root_name, root_name)
         end
         if (var.borrow_imm and var.borrow_imm > 0) or (var.borrow_mut and var.borrow_mut > 0) then
-          report(ctx, "Cannot assign to " .. root_name .. " while it is borrowed")
+          report_assign_while_borrowed(ctx, root_name)
         end
       end
     end
@@ -2587,7 +2723,7 @@ local function check_statement(ctx, stmt)
     if id then
       local var = ctx.ownership.vars[id]
       if var and var.moved then
-        report(ctx, stmt.name .. " was moved")
+        report_moved_value(ctx, stmt.name, stmt.name)
       end
     end
     local value_type = expect_value(ctx, infer_expr(ctx, stmt.value), "deref value")

@@ -690,6 +690,70 @@ RexValue rex_result_value(RexValue v) {
   return rex_tag_value(v);
 }
 
+RexValue rex_result_is_ok(RexValue value) {
+  return rex_bool(rex_result_is(value, "Ok"));
+}
+
+RexValue rex_result_is_err(RexValue value) {
+  return rex_bool(rex_result_is(value, "Err"));
+}
+
+RexValue rex_result_unwrap_or(RexValue value, RexValue fallback) {
+  value = rex_resolve(value);
+  if (value.tag != REX_RESULT || !value.as.ptr) {
+    rex_panic("result.unwrap_or expects Result");
+    return fallback;
+  }
+  if (rex_result_is(value, "Ok")) {
+    return rex_result_value(value);
+  }
+  if (rex_result_is(value, "Err")) {
+    return fallback;
+  }
+  rex_panic("result.unwrap_or expects Ok or Err");
+  return fallback;
+}
+
+RexValue rex_result_unwrap_or_else(RexValue value, RexValue fallback) {
+  return rex_result_unwrap_or(value, fallback);
+}
+
+RexValue rex_result_ok_or(RexValue value, RexValue err) {
+  value = rex_resolve(value);
+  if (value.tag == REX_NIL) {
+    return rex_err(err);
+  }
+  return rex_ok(value);
+}
+
+RexValue rex_result_expect(RexValue value, RexValue message) {
+  value = rex_resolve(value);
+  message = rex_resolve(message);
+  if (value.tag != REX_RESULT || !value.as.ptr) {
+    rex_panic("result.expect expects Result");
+    return rex_nil();
+  }
+  if (message.tag != REX_STR) {
+    rex_panic("result.expect expects string message");
+    return rex_nil();
+  }
+  if (rex_result_is(value, "Ok")) {
+    return rex_result_value(value);
+  }
+  if (rex_result_is(value, "Err")) {
+    RexStrBuilder sb;
+    sb_init(&sb);
+    sb_append_str(&sb, message.as.str ? message.as.str : "");
+    sb_append_str(&sb, ": ");
+    sb_append_str(&sb, rex_to_cstr(rex_result_value(value)));
+    rex_panic(sb.data ? sb.data : "result.expect failed");
+    sb_free(&sb);
+    return rex_nil();
+  }
+  rex_panic("result.expect expects Ok or Err");
+  return rex_nil();
+}
+
 RexValue rex_try(RexValue v) {
   v = rex_resolve(v);
   if (v.tag != REX_RESULT || !v.as.ptr) {
@@ -1024,6 +1088,183 @@ RexValue rex_format(RexValue v) {
   return rex_str(rex_to_cstr(v));
 }
 
+static RexValue rex_make_str_range(const char* start, size_t len) {
+  char* out = (char*)rex_xmalloc(len + 1u);
+  if (len > 0) {
+    memcpy(out, start, len);
+  }
+  out[len] = '\0';
+  RexValue value = rex_str(out);
+  free(out);
+  return value;
+}
+
+static RexValue rex_pad_string_impl(const char* src, int target, const char* fill, int pad_left) {
+  if (!src) {
+    src = "";
+  }
+  if (!fill) {
+    fill = "";
+  }
+
+  size_t src_len = strlen(src);
+  size_t fill_len = strlen(fill);
+  if (target <= 0 || (size_t)target <= src_len || fill_len == 0) {
+    return rex_str(src);
+  }
+
+  size_t out_len = (size_t)target;
+  size_t pad_len = out_len - src_len;
+  char* out = (char*)rex_xmalloc(out_len + 1u);
+
+  if (pad_left) {
+    for (size_t i = 0; i < pad_len; ++i) {
+      out[i] = fill[i % fill_len];
+    }
+    memcpy(out + pad_len, src, src_len);
+  } else {
+    memcpy(out, src, src_len);
+    for (size_t i = 0; i < pad_len; ++i) {
+      out[src_len + i] = fill[i % fill_len];
+    }
+  }
+
+  out[out_len] = '\0';
+  RexValue value = rex_str(out);
+  free(out);
+  return value;
+}
+
+static RexValue rex_join_vec_impl(RexValue vec, RexValue sep, const char* name) {
+  vec = rex_resolve(vec);
+  sep = rex_resolve(sep);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic(name);
+    return rex_str("");
+  }
+  if (sep.tag != REX_STR) {
+    rex_panic("join expects string separator");
+    return rex_str("");
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  const char* separator = sep.as.str ? sep.as.str : "";
+  RexStrBuilder sb;
+  sb_init(&sb);
+
+  for (int i = 0; i < v->count; ++i) {
+    if (i > 0) {
+      sb_append_str(&sb, separator);
+    }
+    RexValue item = rex_resolve(v->items[i]);
+    sb_append_str(&sb, rex_to_cstr(item));
+  }
+
+  RexValue out = rex_str(sb.data ? sb.data : "");
+  sb_free(&sb);
+  return out;
+}
+
+RexValue rex_fmt_pad_left(RexValue value, RexValue width, RexValue fill) {
+  RexValue text = rex_format(value);
+  return rex_text_pad_left(text, width, fill);
+}
+
+RexValue rex_fmt_pad_right(RexValue value, RexValue width, RexValue fill) {
+  RexValue text = rex_format(value);
+  return rex_text_pad_right(text, width, fill);
+}
+
+RexValue rex_fmt_join(RexValue vec, RexValue sep) {
+  return rex_join_vec_impl(vec, sep, "fmt.join expects vector");
+}
+
+RexValue rex_fmt_fixed(RexValue value, RexValue digits) {
+  value = rex_resolve(value);
+  digits = rex_resolve(digits);
+  if (value.tag != REX_NUM) {
+    rex_panic("fmt.fixed expects numeric value");
+    return rex_str("");
+  }
+  if (digits.tag != REX_NUM) {
+    rex_panic("fmt.fixed expects numeric digits");
+    return rex_str("");
+  }
+
+  int places = (int)digits.as.num;
+  if (places < 0) {
+    places = 0;
+  }
+  if (places > 32) {
+    places = 32;
+  }
+
+  int needed = snprintf(NULL, 0, "%.*f", places, value.as.num);
+  if (needed < 0) {
+    rex_panic("fmt.fixed formatting failed");
+    return rex_str("");
+  }
+
+  char* out = (char*)rex_xmalloc((size_t)needed + 1u);
+  snprintf(out, (size_t)needed + 1u, "%.*f", places, value.as.num);
+  RexValue result = rex_str(out);
+  free(out);
+  return result;
+}
+
+RexValue rex_fmt_hex(RexValue value) {
+  value = rex_resolve(value);
+  if (value.tag != REX_NUM) {
+    rex_panic("fmt.hex expects number");
+    return rex_str("");
+  }
+
+  long long raw = (long long)value.as.num;
+  unsigned long long mag = raw < 0 ? (unsigned long long)(-raw) : (unsigned long long)raw;
+  char buf[64];
+  if (raw < 0) {
+    snprintf(buf, sizeof(buf), "-%llx", mag);
+  } else {
+    snprintf(buf, sizeof(buf), "%llx", mag);
+  }
+  return rex_str(buf);
+}
+
+RexValue rex_fmt_bin(RexValue value) {
+  value = rex_resolve(value);
+  if (value.tag != REX_NUM) {
+    rex_panic("fmt.bin expects number");
+    return rex_str("");
+  }
+
+  long long raw = (long long)value.as.num;
+  unsigned long long mag = raw < 0 ? (unsigned long long)(-raw) : (unsigned long long)raw;
+  char bits[65];
+  int count = 0;
+
+  if (mag == 0) {
+    bits[count++] = '0';
+  } else {
+    while (mag != 0) {
+      bits[count++] = (mag & 1ULL) ? '1' : '0';
+      mag >>= 1ULL;
+    }
+  }
+
+  RexStrBuilder sb;
+  sb_init(&sb);
+  if (raw < 0) {
+    sb_append_char(&sb, '-');
+  }
+  while (count > 0) {
+    sb_append_char(&sb, bits[--count]);
+  }
+
+  RexValue out = rex_str(sb.data ? sb.data : "");
+  sb_free(&sb);
+  return out;
+}
+
 RexValue rex_sqrt(RexValue v) {
   v = rex_resolve(v);
   if (v.tag != REX_NUM) {
@@ -1106,6 +1347,405 @@ RexValue rex_math_eval(RexValue expr) {
     out = lhs / rhs;
   }
   return rex_ok(rex_num(out));
+}
+
+RexValue rex_text_initials(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.initials expects string");
+    return rex_str("");
+  }
+
+  const char* s = text.as.str ? text.as.str : "";
+  RexStrBuilder sb;
+  sb_init(&sb);
+  int take_next = 1;
+
+  for (const unsigned char* p = (const unsigned char*)s; *p; ++p) {
+    if (isspace(*p)) {
+      take_next = 1;
+      continue;
+    }
+    if (take_next) {
+      sb_append_char(&sb, (char)*p);
+      take_next = 0;
+    }
+  }
+
+  RexValue outv = rex_str(sb.data ? sb.data : "");
+  sb_free(&sb);
+  return outv;
+}
+
+RexValue rex_text_lower_ascii(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.lower_ascii expects string");
+    return rex_str("");
+  }
+
+  const char* s = text.as.str ? text.as.str : "";
+  size_t len = strlen(s);
+  char* out = (char*)rex_xmalloc(len + 1u);
+  for (size_t i = 0; i < len; ++i) {
+    out[i] = (char)tolower((unsigned char)s[i]);
+  }
+  out[len] = '\0';
+
+  RexValue outv = rex_str(out);
+  free(out);
+  return outv;
+}
+
+RexValue rex_text_pad_left(RexValue text, RexValue width, RexValue fill) {
+  text = rex_resolve(text);
+  width = rex_resolve(width);
+  fill = rex_resolve(fill);
+  if (text.tag != REX_STR) {
+    rex_panic("text.pad_left expects string text");
+    return rex_str("");
+  }
+  if (width.tag != REX_NUM) {
+    rex_panic("text.pad_left expects numeric width");
+    return rex_str("");
+  }
+  if (fill.tag != REX_STR) {
+    rex_panic("text.pad_left expects string fill");
+    return rex_str("");
+  }
+
+  return rex_pad_string_impl(text.as.str ? text.as.str : "", (int)width.as.num, fill.as.str ? fill.as.str : "", 1);
+}
+
+RexValue rex_text_pad_right(RexValue text, RexValue width, RexValue fill) {
+  text = rex_resolve(text);
+  width = rex_resolve(width);
+  fill = rex_resolve(fill);
+  if (text.tag != REX_STR) {
+    rex_panic("text.pad_right expects string text");
+    return rex_str("");
+  }
+  if (width.tag != REX_NUM) {
+    rex_panic("text.pad_right expects numeric width");
+    return rex_str("");
+  }
+  if (fill.tag != REX_STR) {
+    rex_panic("text.pad_right expects string fill");
+    return rex_str("");
+  }
+
+  return rex_pad_string_impl(text.as.str ? text.as.str : "", (int)width.as.num, fill.as.str ? fill.as.str : "", 0);
+}
+
+RexValue rex_text_trim(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.trim expects string");
+    return rex_str("");
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* start = src;
+  while (*start && isspace((unsigned char)*start)) {
+    ++start;
+  }
+  const char* finish = src + strlen(src);
+  while (finish > start && isspace((unsigned char)finish[-1])) {
+    --finish;
+  }
+  return rex_make_str_range(start, (size_t)(finish - start));
+}
+
+RexValue rex_text_trim_start(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.trim_start expects string");
+    return rex_str("");
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* start = src;
+  while (*start && isspace((unsigned char)*start)) {
+    ++start;
+  }
+  return rex_str(start);
+}
+
+RexValue rex_text_trim_end(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.trim_end expects string");
+    return rex_str("");
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* finish = src + strlen(src);
+  while (finish > src && isspace((unsigned char)finish[-1])) {
+    --finish;
+  }
+  return rex_make_str_range(src, (size_t)(finish - src));
+}
+
+RexValue rex_text_split_words(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.split_words expects string");
+    return rex_nil();
+  }
+
+  RexValue out = rex_collections_vec_new();
+  const char* src = text.as.str ? text.as.str : "";
+  const char* p = src;
+
+  while (*p) {
+    while (*p && isspace((unsigned char)*p)) {
+      ++p;
+    }
+    if (!*p) {
+      break;
+    }
+    const char* start = p;
+    while (*p && !isspace((unsigned char)*p)) {
+      ++p;
+    }
+    rex_collections_vec_push(out, rex_make_str_range(start, (size_t)(p - start)));
+  }
+
+  return out;
+}
+
+RexValue rex_text_starts_with(RexValue text, RexValue prefix) {
+  text = rex_resolve(text);
+  prefix = rex_resolve(prefix);
+  if (text.tag != REX_STR || prefix.tag != REX_STR) {
+    rex_panic("text.starts_with expects strings");
+    return rex_bool(0);
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* pre = prefix.as.str ? prefix.as.str : "";
+  size_t src_len = strlen(src);
+  size_t pre_len = strlen(pre);
+  if (pre_len > src_len) {
+    return rex_bool(0);
+  }
+  return rex_bool(memcmp(src, pre, pre_len) == 0);
+}
+
+RexValue rex_text_ends_with(RexValue text, RexValue suffix) {
+  text = rex_resolve(text);
+  suffix = rex_resolve(suffix);
+  if (text.tag != REX_STR || suffix.tag != REX_STR) {
+    rex_panic("text.ends_with expects strings");
+    return rex_bool(0);
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* suf = suffix.as.str ? suffix.as.str : "";
+  size_t src_len = strlen(src);
+  size_t suf_len = strlen(suf);
+  if (suf_len > src_len) {
+    return rex_bool(0);
+  }
+  return rex_bool(memcmp(src + (src_len - suf_len), suf, suf_len) == 0);
+}
+
+RexValue rex_text_contains(RexValue text, RexValue needle) {
+  text = rex_resolve(text);
+  needle = rex_resolve(needle);
+  if (text.tag != REX_STR || needle.tag != REX_STR) {
+    rex_panic("text.contains expects strings");
+    return rex_bool(0);
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* find = needle.as.str ? needle.as.str : "";
+  if (find[0] == '\0') {
+    return rex_bool(1);
+  }
+  return rex_bool(strstr(src, find) != NULL);
+}
+
+RexValue rex_text_replace(RexValue text, RexValue from, RexValue to) {
+  text = rex_resolve(text);
+  from = rex_resolve(from);
+  to = rex_resolve(to);
+  if (text.tag != REX_STR || from.tag != REX_STR || to.tag != REX_STR) {
+    rex_panic("text.replace expects strings");
+    return rex_str("");
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* needle = from.as.str ? from.as.str : "";
+  const char* repl = to.as.str ? to.as.str : "";
+  size_t needle_len = strlen(needle);
+  if (needle_len == 0) {
+    return rex_str(src);
+  }
+
+  RexStrBuilder sb;
+  sb_init(&sb);
+  const char* p = src;
+  while (*p) {
+    const char* hit = strstr(p, needle);
+    if (!hit) {
+      sb_append_str(&sb, p);
+      break;
+    }
+    sb_append_bytes(&sb, p, (int)(hit - p));
+    sb_append_str(&sb, repl);
+    p = hit + needle_len;
+  }
+
+  RexValue out = rex_str(sb.data ? sb.data : "");
+  sb_free(&sb);
+  return out;
+}
+
+RexValue rex_text_repeat(RexValue text, RexValue count) {
+  text = rex_resolve(text);
+  count = rex_resolve(count);
+  if (text.tag != REX_STR) {
+    rex_panic("text.repeat expects string");
+    return rex_str("");
+  }
+  if (count.tag != REX_NUM) {
+    rex_panic("text.repeat expects numeric count");
+    return rex_str("");
+  }
+
+  int times = (int)count.as.num;
+  if (times <= 0) {
+    return rex_str("");
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  RexStrBuilder sb;
+  sb_init(&sb);
+  for (int i = 0; i < times; ++i) {
+    sb_append_str(&sb, src);
+  }
+  RexValue out = rex_str(sb.data ? sb.data : "");
+  sb_free(&sb);
+  return out;
+}
+
+RexValue rex_text_lines(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.lines expects string");
+    return rex_nil();
+  }
+
+  RexValue out = rex_collections_vec_new();
+  const char* src = text.as.str ? text.as.str : "";
+  if (*src == '\0') {
+    return out;
+  }
+
+  const char* start = src;
+  for (const char* p = src; ; ++p) {
+    if (*p == '\n' || *p == '\0') {
+      size_t len = (size_t)(p - start);
+      if (len > 0 && start[len - 1] == '\r') {
+        --len;
+      }
+      rex_collections_vec_push(out, rex_make_str_range(start, len));
+      if (*p == '\0') {
+        break;
+      }
+      start = p + 1;
+    }
+  }
+
+  return out;
+}
+
+RexValue rex_text_upper_ascii(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.upper_ascii expects string");
+    return rex_str("");
+  }
+
+  const char* s = text.as.str ? text.as.str : "";
+  size_t len = strlen(s);
+  char* out = (char*)rex_xmalloc(len + 1u);
+  for (size_t i = 0; i < len; ++i) {
+    out[i] = (char)toupper((unsigned char)s[i]);
+  }
+  out[len] = '\0';
+
+  RexValue outv = rex_str(out);
+  free(out);
+  return outv;
+}
+
+RexValue rex_text_is_empty(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.is_empty expects string");
+    return rex_bool(0);
+  }
+  const char* src = text.as.str ? text.as.str : "";
+  return rex_bool(src[0] == '\0');
+}
+
+RexValue rex_text_len_bytes(RexValue text) {
+  text = rex_resolve(text);
+  if (text.tag != REX_STR) {
+    rex_panic("text.len_bytes expects string");
+    return rex_num(0);
+  }
+  const char* src = text.as.str ? text.as.str : "";
+  return rex_num((double)strlen(src));
+}
+
+RexValue rex_text_index_of(RexValue text, RexValue needle) {
+  text = rex_resolve(text);
+  needle = rex_resolve(needle);
+  if (text.tag != REX_STR || needle.tag != REX_STR) {
+    rex_panic("text.index_of expects strings");
+    return rex_num(-1);
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* find = needle.as.str ? needle.as.str : "";
+  if (find[0] == '\0') {
+    return rex_num(0);
+  }
+  const char* hit = strstr(src, find);
+  if (!hit) {
+    return rex_num(-1);
+  }
+  return rex_num((double)(hit - src));
+}
+
+RexValue rex_text_last_index_of(RexValue text, RexValue needle) {
+  text = rex_resolve(text);
+  needle = rex_resolve(needle);
+  if (text.tag != REX_STR || needle.tag != REX_STR) {
+    rex_panic("text.last_index_of expects strings");
+    return rex_num(-1);
+  }
+
+  const char* src = text.as.str ? text.as.str : "";
+  const char* find = needle.as.str ? needle.as.str : "";
+  size_t src_len = strlen(src);
+  size_t needle_len = strlen(find);
+  if (needle_len == 0) {
+    return rex_num((double)src_len);
+  }
+  if (needle_len > src_len) {
+    return rex_num(-1);
+  }
+  for (size_t i = src_len - needle_len + 1u; i > 0; --i) {
+    size_t idx = i - 1u;
+    if (memcmp(src + idx, find, needle_len) == 0) {
+      return rex_num((double)idx);
+    }
+  }
+  return rex_num(-1);
 }
 
 RexValue rex_random_seed(RexValue seed) {
@@ -2256,6 +2896,133 @@ RexValue rex_collections_vec_slice(RexValue vec, RexValue start, RexValue finish
   return outv;
 }
 
+RexValue rex_collections_vec_find(RexValue vec, RexValue value) {
+  vec = rex_resolve(vec);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_find expects vector");
+    return rex_num(-1);
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  for (int i = 0; i < v->count; ++i) {
+    if (rex_value_eq(v->items[i], value)) {
+      return rex_num((double)i);
+    }
+  }
+  return rex_num(-1);
+}
+
+RexValue rex_collections_vec_any(RexValue vec, RexValue value) {
+  vec = rex_resolve(vec);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_any expects vector");
+    return rex_bool(0);
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  for (int i = 0; i < v->count; ++i) {
+    if (rex_value_eq(v->items[i], value)) {
+      return rex_bool(1);
+    }
+  }
+  return rex_bool(0);
+}
+
+RexValue rex_collections_vec_all(RexValue vec, RexValue value) {
+  vec = rex_resolve(vec);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_all expects vector");
+    return rex_bool(0);
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  for (int i = 0; i < v->count; ++i) {
+    if (!rex_value_eq(v->items[i], value)) {
+      return rex_bool(0);
+    }
+  }
+  return rex_bool(1);
+}
+
+RexValue rex_collections_vec_contains(RexValue vec, RexValue value) {
+  return rex_collections_vec_any(vec, value);
+}
+
+RexValue rex_collections_vec_remove_at(RexValue vec, RexValue index) {
+  vec = rex_resolve_mut(vec);
+  index = rex_resolve(index);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_remove_at expects vector");
+    return rex_nil();
+  }
+  if (index.tag != REX_NUM) {
+    rex_panic("vec_remove_at expects numeric index");
+    return rex_nil();
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  int idx = (int)index.as.num;
+  if (idx < 0 || idx >= v->count) {
+    rex_panic("vec_remove_at index out of range");
+    return rex_nil();
+  }
+
+  RexValue removed = v->items[idx];
+  for (int i = idx + 1; i < v->count; ++i) {
+    v->items[i - 1] = v->items[i];
+  }
+  v->count -= 1;
+  return removed;
+}
+
+RexValue rex_collections_vec_reverse(RexValue vec) {
+  vec = rex_resolve_mut(vec);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_reverse expects vector");
+    return rex_nil();
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  for (int i = 0, j = v->count - 1; i < j; ++i, --j) {
+    RexValue tmp = v->items[i];
+    v->items[i] = v->items[j];
+    v->items[j] = tmp;
+  }
+  return vec;
+}
+
+RexValue rex_collections_vec_first(RexValue vec) {
+  vec = rex_resolve(vec);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_first expects vector");
+    return rex_nil();
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  if (v->count <= 0) {
+    return rex_nil();
+  }
+  return v->items[0];
+}
+
+RexValue rex_collections_vec_last(RexValue vec) {
+  vec = rex_resolve(vec);
+  if (vec.tag != REX_VEC || !vec.as.ptr) {
+    rex_panic("vec_last expects vector");
+    return rex_nil();
+  }
+
+  RexVec* v = (RexVec*)vec.as.ptr;
+  if (v->count <= 0) {
+    return rex_nil();
+  }
+  return v->items[v->count - 1];
+}
+
+RexValue rex_collections_vec_join(RexValue vec, RexValue sep) {
+  return rex_join_vec_impl(vec, sep, "vec_join expects vector");
+}
+
 static RexValue rex_string_get(RexValue str, RexValue index) {
   str = rex_resolve(str);
   index = rex_resolve(index);
@@ -2490,6 +3257,50 @@ RexValue rex_collections_map_keys(RexValue map) {
   return keys;
 }
 
+RexValue rex_collections_map_values(RexValue map) {
+  map = rex_resolve(map);
+  if (map.tag != REX_MAP || !map.as.ptr) {
+    rex_panic("map_values expects map");
+    return rex_nil();
+  }
+
+  RexMap* m = (RexMap*)map.as.ptr;
+  RexValue values = rex_collections_vec_new();
+  for (int i = 0; i < m->count; ++i) {
+    rex_collections_vec_push(values, m->items[i].value);
+  }
+  return values;
+}
+
+RexValue rex_collections_map_items(RexValue map) {
+  map = rex_resolve(map);
+  if (map.tag != REX_MAP || !map.as.ptr) {
+    rex_panic("map_items expects map");
+    return rex_nil();
+  }
+
+  RexMap* m = (RexMap*)map.as.ptr;
+  RexValue items = rex_collections_vec_new();
+  for (int i = 0; i < m->count; ++i) {
+    RexValue pair_values[2];
+    pair_values[0] = m->items[i].key;
+    pair_values[1] = m->items[i].value;
+    rex_collections_vec_push(items, rex_tuple_new(2, pair_values));
+  }
+  return items;
+}
+
+RexValue rex_collections_map_len(RexValue map) {
+  map = rex_resolve(map);
+  if (map.tag != REX_MAP || !map.as.ptr) {
+    rex_panic("map_len expects map");
+    return rex_num(0);
+  }
+
+  RexMap* m = (RexMap*)map.as.ptr;
+  return rex_num((double)m->count);
+}
+
 static void set_grow(RexSet* s) {
   if (s->capacity == 0) {
     s->capacity = 4;
@@ -2560,6 +3371,17 @@ RexValue rex_collections_set_remove(RexValue set, RexValue value) {
     }
   }
   return rex_bool(0);
+}
+
+RexValue rex_collections_set_len(RexValue set) {
+  set = rex_resolve(set);
+  if (set.tag != REX_SET || !set.as.ptr) {
+    rex_panic("set_len expects set");
+    return rex_num(0);
+  }
+
+  RexSet* s = (RexSet*)set.as.ptr;
+  return rex_num((double)s->count);
 }
 
 static void json_append_hex(RexStrBuilder* sb, unsigned char c) {

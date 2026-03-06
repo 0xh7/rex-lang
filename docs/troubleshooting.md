@@ -134,7 +134,7 @@ let v = json.decode<any>(&raw)
 
 ## 3. Ownership and Borrow Errors
 
-### `name was moved`
+### `[E0601] name was moved`
 Meaning:
 - You used a value after move.
 
@@ -142,7 +142,24 @@ How to fix:
 - Borrow instead of moving (`&name` / `&mut name`) where appropriate.
 - Restructure flow so moved value is not reused.
 
-### `Cannot take &mut x while borrowed`
+### `[E0602] Cannot move x while it is mutably borrowed`
+### `[E0603] Cannot move x while it is borrowed`
+Meaning:
+- A value cannot be moved while active borrows still point to it.
+
+How to fix:
+- End the borrow before transfer.
+- Prefer another borrow if you only need read access.
+
+### `[E0604] Cannot take &mut of immutable x`
+Meaning:
+- Mutable borrow requires a mutable binding.
+
+How to fix:
+- Declare the binding with `mut`.
+- If mutation is not needed, use `&x`.
+
+### `[E0605] Cannot take &mut x while borrowed`
 Meaning:
 - Mutable borrow conflicts with existing borrow.
 
@@ -150,7 +167,7 @@ Fix:
 - End the other borrow first.
 - Keep borrow scopes shorter.
 
-### `Cannot take &x while mutably borrowed`
+### `[E0606] Cannot take &x while mutably borrowed`
 Meaning:
 - Immutable borrow conflicts with active mutable borrow.
 
@@ -172,12 +189,27 @@ Meaning:
 Fix:
 - Mark the root binding as `mut`.
 
-### `Cannot assign to x while it is borrowed`
+### `[E0607] Cannot assign to x while it is borrowed`
 Meaning:
 - Value is currently borrowed; mutation is blocked by safety rules.
 
 Fix:
 - Move mutation outside borrow scope.
+
+### `[E0608] argument N expects &T; use &`
+Meaning:
+- A function expected a borrowed argument but a value was passed directly.
+
+Fix:
+- Pass `&value` or `&mut value` to match the parameter.
+
+### `[E0701] cannot move value inside active bond (only Copy types allowed)`
+Meaning:
+- Active bond state only permits copy-like transfers.
+
+Fix:
+- Keep non-Copy moves outside the active bond.
+- Rewrite the bond body to mutate copy-compatible state only.
 
 ## 4. Result / Try Errors
 

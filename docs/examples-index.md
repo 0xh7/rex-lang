@@ -37,11 +37,14 @@ Summary of sample programs under `rex/examples`.
 - `rex/examples/io.rex`: File and line I/O operations.
 - `rex/examples/os_fs.rex`: OS info + filesystem checks and directory creation.
 - `rex/examples/collections.rex`: Vector/map/set operations.
+- `rex/examples/collections_extra.rex`: Search, join, values, and items helpers for collections.
 - `rex/examples/json.rex`: JSON encode/decode with typed and dynamic values.
+- `rex/examples/text.rex`: Text/fmt helpers for trimming, search, joining, padding, and casing.
 - `rex/examples/time.rex`: Time APIs and elapsed calculations.
 - `rex/examples/threads.rex`: Channels and message passing.
 - `rex/examples/spawn.rex`: Basic spawn workers and wait.
 - `rex/examples/memory.rex`: Pointer allocation, dereference, `box`, `drop`.
+- `rex/examples/result_helpers.rex`: `result.is_ok`, `result.is_err`, and `result.unwrap_or`.
 
 ## Performance
 
