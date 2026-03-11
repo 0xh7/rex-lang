@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="70" x2="1180" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E9E2D6"/>
+      <stop offset="1" stop-color="#DCD3C3"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F8F5EF"/>
+      <stop offset="1" stop-color="#ECE6DB"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#6B5A40" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="760" rx="28" fill="url(#bg)"/>
+
+  <text x="78" y="92" fill="#173A67" font-family="Georgia, Times New Roman, serif" font-size="34" font-weight="700">Rex Playground</text>
+  <text x="78" y="126" fill="#51657F" font-family="Segoe UI, Arial, sans-serif" font-size="20">Run Rex code in a sandbox, inspect output, and save projects when signed in.</text>
+  <path d="M60 54V134" stroke="#35537F" stroke-width="4"/>
+
+  <rect x="60" y="170" width="760" height="530" rx="18" fill="url(#panel)" stroke="#C5B28D" stroke-width="2" filter="url(#shadow)"/>
+  <text x="88" y="214" fill="#142A4C" font-family="Georgia, Times New Roman, serif" font-size="28" font-weight="700">Code Runner</text>
+
+  <rect x="88" y="234" width="704" height="42" rx="10" fill="#FAF8F2" stroke="#C7B38B"/>
+  <text x="104" y="261" fill="#394B63" font-family="Segoe UI, Arial, sans-serif" font-size="18">my-project</text>
+
+  <rect x="88" y="294" width="220" height="42" rx="10" fill="#FAF8F2" stroke="#C7B38B"/>
+  <text x="104" y="321" fill="#394B63" font-family="Segoe UI, Arial, sans-serif" font-size="18">hello.rex</text>
+
+  <rect x="88" y="354" width="70" height="40" rx="10" fill="#D3A23A"/>
+  <text x="108" y="380" fill="#091220" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">RUN</text>
+
+  <rect x="170" y="354" width="84" height="40" rx="10" fill="#2E4F7D"/>
+  <text x="192" y="380" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">SAVE</text>
+
+  <rect x="266" y="354" width="94" height="40" rx="10" fill="#F5F1EA" stroke="#C7B38B"/>
+  <text x="287" y="380" fill="#173A67" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">SHARE</text>
+
+  <rect x="88" y="418" width="704" height="290" rx="14" fill="#162B47"/>
+  <rect x="88" y="418" width="704" height="26" rx="14" fill="#20395D"/>
+  <text x="110" y="466" fill="#F08CCC" font-family="Consolas, Menlo, monospace" font-size="18">use rex::io</text>
+  <text x="110" y="502" fill="#74A6FF" font-family="Consolas, Menlo, monospace" font-size="18">fn main() {</text>
+  <text x="146" y="538" fill="#D9E4FF" font-family="Consolas, Menlo, monospace" font-size="18">println("Hello from Rex")</text>
+  <text x="110" y="574" fill="#74A6FF" font-family="Consolas, Menlo, monospace" font-size="18">}</text>
+
+  <rect x="860" y="170" width="360" height="530" rx="18" fill="url(#panel)" stroke="#C5B28D" stroke-width="2" filter="url(#shadow)"/>
+  <text x="888" y="214" fill="#51657F" font-family="Segoe UI, Arial, sans-serif" font-size="18">Signed in: 0xh7</text>
+
+  <rect x="888" y="232" width="112" height="38" rx="10" fill="#F5F1EA" stroke="#C7B38B"/>
+  <text x="914" y="257" fill="#173A67" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">LOGOUT</text>
+
+  <rect x="888" y="292" width="304" height="188" rx="12" fill="#F3EEE4" stroke="#C7B38B"/>
+  <text x="908" y="330" fill="#142A4C" font-family="Georgia, Times New Roman, serif" font-size="24" font-weight="700">Profile</text>
+  <text x="908" y="370" fill="#173A67" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">@0xh7</text>
+  <text x="908" y="408" fill="#142A4C" font-family="Segoe UI, Arial, sans-serif" font-size="18">Saved projects</text>
+  <text x="1100" y="408" fill="#173A67" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">2</text>
+  <text x="908" y="440" fill="#142A4C" font-family="Segoe UI, Arial, sans-serif" font-size="18">Playground runs</text>
+  <text x="1100" y="440" fill="#173A67" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">51</text>
+  <text x="908" y="472" fill="#142A4C" font-family="Segoe UI, Arial, sans-serif" font-size="18">Shared projects</text>
+  <text x="1100" y="472" fill="#173A67" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">1</text>
+
+  <text x="888" y="530" fill="#142A4C" font-family="Georgia, Times New Roman, serif" font-size="24" font-weight="700">My Projects</text>
+  <rect x="888" y="548" width="304" height="82" rx="12" fill="#E9EEF6" stroke="#35537F"/>
+  <text x="908" y="580" fill="#091220" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">my-project</text>
+  <text x="908" y="608" fill="#51657F" font-family="Segoe UI, Arial, sans-serif" font-size="16">public</text>
+</svg>

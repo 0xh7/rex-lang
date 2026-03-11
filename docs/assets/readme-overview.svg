@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="60" x2="1180" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#132644"/>
+      <stop offset="1" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#172B4D"/>
+      <stop offset="1" stop-color="#101B31"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#EAC46A"/>
+      <stop offset="1" stop-color="#B8872D"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#020617" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="720" rx="32" fill="url(#bg)"/>
+  <circle cx="1130" cy="122" r="170" fill="#1E3A5F" fill-opacity="0.16"/>
+  <circle cx="134" cy="620" r="140" fill="#173154" fill-opacity="0.14"/>
+
+  <text x="78" y="92" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700">Rex Workflow</text>
+  <text x="78" y="126" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="20">Compiler path, project layout, and package flow used by this repository.</text>
+  <path d="M64 158H1216" stroke="#27456F" stroke-width="1"/>
+
+  <rect x="78" y="202" width="248" height="152" rx="22" fill="url(#panel)" stroke="#345784" stroke-width="2" filter="url(#shadow)"/>
+  <text x="104" y="248" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Rex Source</text>
+  <text x="104" y="286" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="18">src/main.rex</text>
+  <text x="104" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">explicit ownership</text>
+  <text x="104" y="344" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">clear control flow</text>
+
+  <rect x="390" y="202" width="248" height="152" rx="22" fill="url(#panel)" stroke="#5870A8" stroke-width="2" filter="url(#shadow)"/>
+  <text x="416" y="248" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Lua Front-End</text>
+  <text x="416" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">lexer</text>
+  <text x="474" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">parser</text>
+  <text x="548" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">typechecker</text>
+  <text x="416" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">diagnostics</text>
+  <text x="516" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">lowering</text>
+
+  <rect x="702" y="202" width="248" height="152" rx="22" fill="url(#panel)" stroke="#6B62A7" stroke-width="2" filter="url(#shadow)"/>
+  <text x="728" y="248" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">C Output</text>
+  <text x="728" y="286" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="18">generated.c</text>
+  <text x="728" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">portable backend</text>
+  <text x="728" y="344" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">native build after lowering</text>
+
+  <rect x="1014" y="202" width="188" height="152" rx="22" fill="url(#panel)" stroke="#4F8A77" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1040" y="248" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Runtime</text>
+  <text x="1040" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">io</text>
+  <text x="1070" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">fs</text>
+  <text x="1100" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">time</text>
+  <text x="1150" y="286" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="18">json</text>
+  <text x="1040" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">http</text>
+  <text x="1085" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">ui</text>
+  <text x="1110" y="318" fill="#9FB5D4" font-family="Segoe UI, Arial, sans-serif" font-size="18">audio</text>
+
+  <path d="M326 278H374" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M374 278L358 265" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M374 278L358 291" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+
+  <path d="M638 278H686" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M686 278L670 265" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M686 278L670 291" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+
+  <path d="M950 278H998" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M998 278L982 265" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M998 278L982 291" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+
+  <rect x="78" y="418" width="478" height="226" rx="24" fill="#101A2D" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+  <text x="106" y="462" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Project and Package Flow</text>
+  <text x="106" y="506" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="20">rex init my-app</text>
+  <text x="300" y="506" fill="#E5B54B" font-family="Segoe UI, Arial, sans-serif" font-size="20">-&gt;</text>
+  <text x="334" y="506" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="20">rex.toml</text>
+  <text x="106" y="542" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="20">rex add utils --path ../utils</text>
+  <text x="106" y="578" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="19">rex add jsonx --git repo --rev abc123</text>
+  <text x="106" y="614" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="20">rex install</text>
+  <text x="232" y="614" fill="#E5B54B" font-family="Segoe UI, Arial, sans-serif" font-size="20">-&gt;</text>
+  <text x="266" y="614" fill="#D8E3F0" font-family="Consolas, Menlo, monospace" font-size="20">rex.lock</text>
+
+  <rect x="590" y="418" width="612" height="226" rx="24" fill="#101A2D" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+  <text x="618" y="462" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Repository Surface</text>
+
+  <rect x="618" y="496" width="170" height="54" rx="14" fill="#16233C" stroke="#35537F"/>
+  <text x="640" y="529" fill="#F8FAFC" font-family="Consolas, Menlo, monospace" font-size="19">rex/compiler</text>
+
+  <rect x="812" y="496" width="170" height="54" rx="14" fill="#16233C" stroke="#4F8A77"/>
+  <text x="834" y="529" fill="#F8FAFC" font-family="Consolas, Menlo, monospace" font-size="19">rex/runtime_c</text>
+
+  <rect x="1006" y="496" width="170" height="54" rx="14" fill="#16233C" stroke="#6B62A7"/>
+  <text x="1038" y="529" fill="#F8FAFC" font-family="Consolas, Menlo, monospace" font-size="19">rex/examples</text>
+
+  <rect x="618" y="574" width="170" height="54" rx="14" fill="#16233C" stroke="#B8872D"/>
+  <text x="664" y="607" fill="#F8FAFC" font-family="Consolas, Menlo, monospace" font-size="19">docs</text>
+
+  <text x="812" y="588" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="19">compiler, runtime, examples, docs, website,</text>
+  <text x="812" y="614" fill="#D8E3F0" font-family="Segoe UI, Arial, sans-serif" font-size="19">and services in one working repository.</text>
+</svg>
