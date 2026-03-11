@@ -223,8 +223,6 @@ entry = "src/main.rex"
 | `rex/examples` | Sample Rex programs |
 | `docs` | Language and tooling documentation |
 | `tools` | Editor and packaging support |
-| `website` | Project site and book viewer |
-| `services` | Playground API and deployment pieces |
 
 ## Current Focus
 
