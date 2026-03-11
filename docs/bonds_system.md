@@ -1,7 +1,7 @@
 # Rex Bond System
 
-The bond system gives Rex a transaction-like block of mutations.
-You open a bond, perform changes, then either commit or roll back.
+The bond system is Rex's scoped mutation log.
+You enter a bond, perform writes, and then end that scope with either `commit` or `rollback`.
 
 ## 1. Core Syntax
 

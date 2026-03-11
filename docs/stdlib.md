@@ -1,6 +1,7 @@
 # Rex Standard Library Guide
 
 Rex exposes runtime functionality through modules imported with `use`.
+This guide is a map of the modules shipped with the current runtime and the calls they expose.
 
 Example:
 
@@ -9,7 +10,7 @@ use rex::io
 use rex::time
 ```
 
-Current module map:
+Module map:
 
 ## 1. Core Built-ins
 

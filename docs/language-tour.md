@@ -1,6 +1,6 @@
 # Rex Language Tour
 
-This is a practical tour of Rex features, from basic syntax to ownership and error handling.
+This tour walks through the parts of Rex you will hit first when writing real code: declarations, data types, ownership, results, and runtime modules.
 
 ## 1. Variables and Functions
 

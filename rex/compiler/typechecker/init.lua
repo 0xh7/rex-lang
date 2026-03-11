@@ -539,6 +539,8 @@ end
 local resolve_type
 local build_struct_type
 local build_enum_type
+local resolve_package_export
+local resolve_package_member_export
 
 local numeric_names = {
   i8 = true,
@@ -667,6 +669,22 @@ resolve_type = function(ctx, t, type_params, depth)
     local name = t.name
     if type_params and type_params[name] then
       return type_params[name]
+    end
+    local module_alias, export_name = name:match("^([A-Za-z_][A-Za-z0-9_]*)::(.+)$")
+    if module_alias and export_name then
+      local module = ctx.imports[module_alias] or module_alias
+      local export = resolve_package_export(ctx, module, export_name)
+      if export then
+        local internal_name = export.internal_name or (export.item and export.item.name) or export_name
+        local export_kind = export.kind or (export.item and export.item.kind)
+        if export_kind == "Struct" then
+          return build_struct_type(ctx, internal_name, t.args, type_params)
+        elseif export_kind == "Enum" then
+          return build_enum_type(ctx, internal_name, t.args, type_params)
+        elseif export_kind == "TypeAlias" and ctx.aliases[internal_name] then
+          return resolve_type(ctx, ctx.aliases[internal_name], type_params, depth + 1)
+        end
+      end
     end
     if ctx.aliases[name] then
       return resolve_type(ctx, ctx.aliases[name], type_params, depth + 1)
@@ -1972,6 +1990,48 @@ infer_call = function(ctx, expr)
     local prop = callee.property
     local obj_info = nil
     local obj_id = nil
+    local package_module, package_export, package_internal_name, package_export_kind = resolve_package_member_export(ctx, obj)
+    if package_export then
+      if package_export_kind == "Struct" and prop == "new" then
+        local struct_type = build_struct_type(ctx, package_internal_name, type_args)
+        local fields = ctx.structs[package_internal_name] and ctx.structs[package_internal_name].field_list or {}
+        if #args ~= #fields then
+          report(ctx, "Constructor expects " .. #fields .. " argument(s), got " .. #args)
+        end
+        local limit = math.min(#args, #fields)
+        for i = 1, limit do
+          local expected = resolve_type(ctx, fields[i].type, nil)
+          local actual = expect_value(ctx, infer_expr(ctx, args[i]), "constructor argument")
+          if expected and not type_assignable(expected, actual) then
+            report(ctx, "Constructor argument " .. i .. " expects " .. type_to_string(expected) .. ", got " .. type_to_string(actual))
+          end
+        end
+        return struct_type
+      elseif package_export_kind == "Enum" then
+        local enum_type = build_enum_type(ctx, package_internal_name, type_args)
+        local payload = enum_type.variants[prop]
+        if payload == nil then
+          report(ctx, "Unknown enum variant: " .. package_module .. "::" .. obj.property .. "." .. prop)
+          return type_unknown()
+        end
+        if payload == false then
+          if #args ~= 0 then
+            report(ctx, "Enum variant " .. package_module .. "::" .. obj.property .. "." .. prop .. " expects 0 arguments")
+          end
+          return enum_type
+        end
+        if #args ~= 1 then
+          report(ctx, "Enum variant " .. package_module .. "::" .. obj.property .. "." .. prop .. " expects 1 argument")
+        end
+        local arg_type = args[1] and expect_value(ctx, infer_expr(ctx, args[1]), "enum payload") or type_unknown()
+        if not type_assignable(payload, arg_type) then
+          report(ctx, "Enum variant " .. package_module .. "::" .. obj.property .. "." .. prop .. " expects " .. type_to_string(payload))
+        end
+        return enum_type
+      end
+      report(ctx, "Package export " .. package_module .. "::" .. obj.property .. " does not support member call ." .. prop)
+      return type_unknown()
+    end
     if obj.kind == "Identifier" then
       local module = ctx.imports[obj.name]
       if module then
@@ -2150,6 +2210,24 @@ infer_member = function(ctx, expr)
   local obj = expr.object
   local prop = expr.property
   local obj_type = nil
+  local package_module, package_export, package_internal_name, package_export_kind = resolve_package_member_export(ctx, obj)
+  if package_export then
+    if package_export_kind == "Enum" then
+      local enum_type = build_enum_type(ctx, package_internal_name, nil)
+      local payload = enum_type.variants[prop]
+      if payload == nil then
+        report(ctx, "Unknown enum variant: " .. package_module .. "::" .. obj.property .. "." .. prop)
+        return type_unknown()
+      end
+      if payload ~= false then
+        report(ctx, "Enum variant " .. package_module .. "::" .. obj.property .. "." .. prop .. " requires payload")
+      end
+      return enum_type
+    end
+    if package_export_kind == "Struct" and prop == "new" then
+      return type_fn({}, build_struct_type(ctx, package_internal_name, nil))
+    end
+  end
   if obj.kind == "Identifier" then
     local module = ctx.imports[obj.name]
     if module then
@@ -3039,11 +3117,76 @@ local function map_import(item)
   local module = alias
   if item.path[1] == "rex" then
     module = item.path[2] or alias
+  else
+    module = item.path[1] or alias
   end
   return alias, module
 end
 
-function Typechecker.check(ast)
+local function clone_modules_table(source)
+  local out = {}
+  for module_name, entries in pairs(source or {}) do
+    out[module_name] = {}
+    for fn_name, sig_info in pairs(entries or {}) do
+      out[module_name][fn_name] = sig_info
+    end
+  end
+  return out
+end
+
+local function build_signature_from_item(ctx, item)
+  local generics, generic_bounds = collect_type_params(item.type_params, item.type_param_bounds)
+  local generic_set = {}
+  for _, name in ipairs(generics) do
+    generic_set[name] = true
+  end
+  local params = {}
+  for _, p in ipairs(item.params or {}) do
+    local ptype = p.type and parse_type_string(p.type) or type_unknown()
+    ptype = convert_type_vars(ptype, generic_set)
+    if p.ref == "ref" or p.ref == "ref_mut" then
+      ptype = type_ref(resolve_type(ctx, ptype, nil), p.ref == "ref_mut")
+    else
+      ptype = resolve_type(ctx, ptype, nil)
+    end
+    table.insert(params, ptype)
+  end
+  local ret = item.return_type and parse_type_string(item.return_type) or type_void()
+  ret = convert_type_vars(ret, generic_set)
+  ret = resolve_type(ctx, ret, nil)
+  return sig(params, ret, generics, generic_bounds)
+end
+
+resolve_package_export = function(ctx, module_name, export_name)
+  local exports = ctx.package_exports and ctx.package_exports[module_name]
+  if not exports then
+    return nil
+  end
+  return exports[export_name]
+end
+
+resolve_package_member_export = function(ctx, expr)
+  if not expr or expr.kind ~= "Member" then
+    return nil, nil, nil
+  end
+  if not expr.object or expr.object.kind ~= "Identifier" then
+    return nil, nil, nil
+  end
+  local module = ctx.imports[expr.object.name]
+  if not module then
+    return nil, nil, nil
+  end
+  local export = resolve_package_export(ctx, module, expr.property)
+  if not export then
+    return module, nil, nil
+  end
+  local internal_name = export.internal_name or (export.item and export.item.name) or expr.property
+  local export_kind = export.kind or (export.item and export.item.kind)
+  return module, export, internal_name, export_kind
+end
+
+function Typechecker.check(ast, opts)
+  opts = opts or {}
   local ctx = {
     errors = {},
     structs = {},
@@ -3062,10 +3205,70 @@ function Typechecker.check(ast)
       defer_use = {},
     },
     builtins = builtins,
-    modules = modules,
+    modules = clone_modules_table(modules),
+    package_exports = {},
     current_func = "<top>",
     return_type = type_void(),
   }
+
+  for module_name, exports in pairs(opts.external_modules or {}) do
+    ctx.package_exports[module_name] = {}
+    ctx.modules[module_name] = ctx.modules[module_name] or {}
+    for export_name, export_info in pairs(exports or {}) do
+      ctx.package_exports[module_name][export_name] = export_info
+    end
+  end
+
+  for _, exports in pairs(opts.external_modules or {}) do
+    for _, export_info in pairs(exports or {}) do
+      local item = export_info.item
+      local internal_name = export_info.internal_name or (item and item.name)
+      if item and item.kind == "Struct" then
+        local params, param_bounds = collect_type_params(item.params, item.param_bounds)
+        local param_set = {}
+        for _, name in ipairs(params) do
+          param_set[name] = true
+        end
+        local field_list = {}
+        for _, field in ipairs(item.fields or {}) do
+          local ftype = field.type and parse_type_string(field.type) or type_unknown()
+          ftype = convert_type_vars(ftype, param_set)
+          table.insert(field_list, { name = field.name, type = ftype })
+        end
+        ctx.structs[internal_name] = { params = params, param_bounds = param_bounds, field_list = field_list }
+      elseif item and item.kind == "Enum" then
+        local params, param_bounds = collect_type_params(item.params, item.param_bounds)
+        local param_set = {}
+        for _, name in ipairs(params) do
+          param_set[name] = true
+        end
+        local variants = {}
+        for _, variant in ipairs(item.variants or {}) do
+          local types = {}
+          for _, vtype in ipairs(variant.types or {}) do
+            local parsed = parse_type_string(vtype)
+            parsed = convert_type_vars(parsed, param_set)
+            table.insert(types, parsed)
+          end
+          if #types > 1 then
+            report(ctx, "Enum variant " .. internal_name .. "." .. variant.name .. " supports at most one payload")
+          end
+          table.insert(variants, { name = variant.name, types = types })
+        end
+        ctx.enums[internal_name] = { params = params, param_bounds = param_bounds, variants = variants }
+      elseif item and item.kind == "TypeAlias" then
+        ctx.aliases[internal_name] = parse_type_string(item.aliased)
+      end
+    end
+  end
+
+  for module_name, exports in pairs(opts.external_modules or {}) do
+    for export_name, export_info in pairs(exports or {}) do
+      if export_info.item and export_info.item.kind == "Function" then
+        ctx.modules[module_name][export_name] = build_signature_from_item(ctx, export_info.item)
+      end
+    end
+  end
 
   for _, item in ipairs(ast.items or {}) do
     if item.kind == "Struct" then
@@ -3115,26 +3318,7 @@ function Typechecker.check(ast)
 
   for _, item in ipairs(ast.items or {}) do
     if item.kind == "Function" then
-      local generics, generic_bounds = collect_type_params(item.type_params, item.type_param_bounds)
-      local generic_set = {}
-      for _, name in ipairs(generics) do
-        generic_set[name] = true
-      end
-      local params = {}
-      for _, p in ipairs(item.params or {}) do
-        local ptype = p.type and parse_type_string(p.type) or type_unknown()
-        ptype = convert_type_vars(ptype, generic_set)
-        if p.ref == "ref" or p.ref == "ref_mut" then
-          ptype = type_ref(resolve_type(ctx, ptype, nil), p.ref == "ref_mut")
-        else
-          ptype = resolve_type(ctx, ptype, nil)
-        end
-        table.insert(params, ptype)
-      end
-      local ret = item.return_type and parse_type_string(item.return_type) or type_void()
-      ret = convert_type_vars(ret, generic_set)
-      ret = resolve_type(ctx, ret, nil)
-      ctx.functions[item.name] = sig(params, ret, generics, generic_bounds)
+      ctx.functions[item.name] = build_signature_from_item(ctx, item)
     elseif item.kind == "Impl" then
       ctx.methods[item.name] = ctx.methods[item.name] or {}
       local self_type = build_self_type(ctx, item)

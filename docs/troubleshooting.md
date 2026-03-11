@@ -1,6 +1,6 @@
 # Rex Troubleshooting: Common Errors
 
-Common error reference for current Rex behavior.
+This file is a working error guide for the current compiler and runtime.
 Each section includes:
 - the actual error message
 - what it means

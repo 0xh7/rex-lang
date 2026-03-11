@@ -1,7 +1,7 @@
 # Rex Language Spec (Current Implementation)
 
-This document describes how Rex works today in this repository.
-It is intentionally practical, based on the compiler and runtime behavior.
+This document describes the implementation that exists in this repository today.
+It follows compiler and runtime behavior first, and only states rules we can point to in code.
 
 ## 1. Design Direction
 

@@ -1,7 +1,7 @@
 # Rex Ownership and Borrowing
 
-Rex uses ownership checks to catch common memory and aliasing mistakes before codegen.
-This document explains the behavior implemented today.
+Rex checks ownership and borrowing before code generation.
+This document describes the rules the current checker enforces, not an aspirational model.
 
 ## 1. Ownership Basics
 

@@ -1,6 +1,6 @@
 # Rex Roadmap
 
-This roadmap is focused on practical milestones for the next stages of the language.
+This roadmap tracks the next practical steps for Rex as a toolchain and language.
 
 ## 1. Language and Compiler
 
@@ -8,12 +8,14 @@ This roadmap is focused on practical milestones for the next stages of the langu
 - Tighten diagnostics (clearer error messages with better context).
 - Expand parser/typechecker tests for edge cases.
 - Continue polishing mixed lvalue parsing and assignment coverage.
-- Improve generic type inference in complex call chains.
+- Improve manifest-driven project workflows and default entry handling.
 
 ### Mid Term
 - Add clearer module/package story.
 - Improve type system ergonomics for large projects.
 - Add stronger static guarantees around advanced features.
+- Land the first bounded package-manager milestone (`docs/package-manager-v1.md`).
+- Extend the package-manager baseline from local paths to git-pinned dependencies.
 
 ### Long Term
 - Evaluate additional backends and compile pipeline improvements.
@@ -28,6 +30,7 @@ This roadmap is focused on practical milestones for the next stages of the langu
 ### Mid Term
 - Improve consistency across modules (naming, signatures, error behavior).
 - Expand utility coverage for real-world application scaffolding.
+- Align standard-library layout with package-aware project workflows.
 
 ### Long Term
 - Add deeper observability and debugging facilities in runtime.
@@ -45,6 +48,7 @@ This roadmap is focused on practical milestones for the next stages of the langu
 
 ### Long Term
 - Build a full developer workflow around project templates, testing, and release.
+- Add package hosting and distribution only after local/git dependency flow is stable.
 
 ## 4. Documentation
 

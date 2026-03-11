@@ -1,6 +1,6 @@
 # Examples Index
 
-Summary of sample programs under `rex/examples`.
+This index maps the sample programs under `rex/examples` to the language or runtime behavior each one exercises.
 
 ## Core Language
 

@@ -1,6 +1,6 @@
 # Getting Started with Rex
 
-Quick setup reference for running a first Rex program.
+Use this file when you want the shortest path from a fresh checkout to a running Rex program.
 
 ## 1. Prerequisites
 
@@ -92,6 +92,9 @@ Generated files:
 - `my-app/rex.toml`
 - `my-app/src/main.rex`
 
+Generated manifest:
+- `entry = "src/main.rex"`
+
 Source checkout usage:
 
 ```bash
@@ -104,22 +107,26 @@ lua compiler/cli/rex.lua init my-app
 Installed Rex build:
 
 ```bash
-rex build my-app/src/main.rex
+cd my-app
+rex build
 ```
 
 Direct run:
 
 ```bash
-rex run my-app/src/main.rex
+cd my-app
+rex run
 ```
 
 Source checkout usage:
 
 ```bash
-cd rex
-lua compiler/cli/rex.lua build my-app/src/main.rex
-lua compiler/cli/rex.lua run my-app/src/main.rex
+cd rex/my-app
+lua ../compiler/cli/rex.lua build
+lua ../compiler/cli/rex.lua run
 ```
+
+All of these commands resolve the default program from `entry` in `rex.toml`.
 
 ## 8. Common Commands
 
@@ -129,8 +136,77 @@ lua compiler/cli/rex.lua run my-app/src/main.rex
   - `rex lint path/to/file.rex`
 - Build all examples to generated C:
   - `rex test`
+- Add a local path dependency to the manifest:
+  - `rex add utils --path ../utils`
+- Add a git dependency to the manifest:
+  - `rex add jsonx --git https://github.com/example/jsonx --rev 4e2d9f1`
+- Remove a manifest dependency:
+  - `rex remove utils`
 
-## 9. Further Reading
+## 9. Next Step: Manifest-Aware Projects
+
+Once `rex.toml` exists, these commands default to the manifest entry:
+
+```bash
+cd my-app
+rex build
+rex run
+rex check
+```
+
+For local dependencies:
+
+```bash
+rex add utils --path ../utils
+rex deps
+rex install
+```
+
+For git-pinned dependencies:
+
+```bash
+rex add jsonx --git https://github.com/example/jsonx --rev 4e2d9f1
+rex deps
+rex install
+```
+
+This updates `rex.toml`, validates dependency manifests, fetches git dependencies into cache, and writes `rex.lock`.
+
+Minimal dependency import:
+
+```rex
+use utils as u
+
+fn main() {
+    u.hello()
+}
+```
+
+Imported package surface today:
+- `pub fn` via `pkg.fn()`
+- `pub struct` via `pkg.Type.new(...)`
+- `pub enum` via `pkg.Enum.Variant(...)`
+- `pub type` in signatures via `pkg::Alias`
+
+Example:
+
+```rex
+use geom as g
+
+fn take_point(p: g::Point) -> i32 {
+    return p.len()
+}
+
+fn main() {
+    let p = g.Point.new(3, 4)
+    println(take_point(p))
+}
+```
+
+Current limitation:
+- imported struct literals are not package-qualified yet; use constructors
+
+## 10. Further Reading
 
 - Syntax: `docs/syntax.md`
 - Ownership: `docs/ownership.md`

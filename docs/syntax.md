@@ -1,6 +1,7 @@
 # Rex Syntax Guide
 
-Reference for syntax implemented by the current compiler.
+This is the syntax reference for the compiler in this repository.
+If the parser accepts it today, it belongs here.
 
 ## 1. Basic Rules
 

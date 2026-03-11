@@ -103,6 +103,7 @@ function Codegen.generate(ast, opts)
     struct_ctors = {},
     method_map = {},
     imports = {},
+    external_modules = opts.external_modules or {},
     name_counters = {},
     current_bindings = { {} },
     block_tail_stack = {},
@@ -343,6 +344,7 @@ function Codegen.generate(ast, opts)
       },
     },
   }
+  local resolve_package_member_export
 
 
   
@@ -578,6 +580,8 @@ function Codegen.generate(ast, opts)
       local module = alias
       if item.path[1] == "rex" then
         module = item.path[2] or alias
+      else
+        module = item.path[1] or alias
       end
       ctx.imports[alias] = module
     end
@@ -835,6 +839,31 @@ function Codegen.generate(ast, opts)
         local obj = callee.object
         local prop = callee.property
         local obj_expr = emit_expr(obj)
+        local package_module, package_export, package_internal_name = resolve_package_member_export(obj)
+        local package_export_kind = package_export and (package_export.kind or (package_export.item and package_export.item.kind))
+        if package_export then
+          if package_export_kind == "Struct" and prop == "new" then
+            local ctor = ctx.struct_ctors[package_internal_name]
+            if ctor then
+              return ctor .. "(" .. table.concat(args, ", ") .. ")"
+            end
+          elseif package_export_kind == "Enum" then
+            local variant = find_enum_variant(package_internal_name, prop)
+            if not variant then
+              error("Unknown enum variant: " .. package_module .. "::" .. obj.property .. "." .. prop)
+            end
+            local expected = variant.types and #variant.types or 0
+            if expected > 1 then
+              error("Enum variant payload supports at most one value")
+            end
+            if #args ~= expected then
+              error("Enum variant " .. package_module .. "::" .. obj.property .. "." .. prop .. " expects " .. expected .. " value(s)")
+            end
+            local payload = (#args == 1) and args[1] or "rex_nil()"
+            return "rex_tag(" .. c_string(prop) .. ", " .. payload .. ")"
+          end
+          error("Package export " .. package_module .. "::" .. obj.property .. " does not support member call ." .. prop)
+        end
         if obj.kind == "Identifier" then
           local module = ctx.imports[obj.name]
           if module then
@@ -845,7 +874,15 @@ function Codegen.generate(ast, opts)
               return "rex_collections_vec_from(" .. #args .. ", (RexValue[]){" .. table.concat(args, ", ") .. "})"
             end
             local map = ctx.module_builtins[module]
-            local func = map and map[prop] or ("rex_" .. module .. "_" .. prop)
+            if map and map[prop] then
+              return map[prop] .. "(" .. table.concat(args, ", ") .. ")"
+            end
+            local export = ctx.external_modules[module] and ctx.external_modules[module][prop]
+            if export then
+              local func = ctx.functions[export.internal_name] or export.internal_name
+              return func .. "(" .. table.concat(args, ", ") .. ")"
+            end
+            local func = "rex_" .. module .. "_" .. prop
             return func .. "(" .. table.concat(args, ", ") .. ")"
           end
           if prop == "new" then
@@ -937,6 +974,21 @@ function Codegen.generate(ast, opts)
 
       return "(rex_panic(\"unsupported call\"), rex_nil())"
     elseif expr.kind == "Member" then
+      local package_module, package_export, package_internal_name = resolve_package_member_export(expr.object)
+      local package_export_kind = package_export and (package_export.kind or (package_export.item and package_export.item.kind))
+      if package_export then
+        if package_export_kind == "Enum" then
+          local variant = find_enum_variant(package_internal_name, expr.property)
+          if not variant then
+            error("Unknown enum variant: " .. package_module .. "::" .. expr.object.property .. "." .. expr.property)
+          end
+          local expected = variant.types and #variant.types or 0
+          if expected > 0 then
+            error("Enum variant " .. package_module .. "::" .. expr.object.property .. "." .. expr.property .. " requires payload")
+          end
+          return "rex_tag(" .. c_string(expr.property) .. ", rex_nil())"
+        end
+      end
       if expr.object.kind == "Identifier" and ctx.enums[expr.object.name] then
         local variant = find_enum_variant(expr.object.name, expr.property)
         if not variant then
@@ -1058,6 +1110,31 @@ function Codegen.generate(ast, opts)
         local obj = callee.object
         local prop = callee.property
         local obj_expr = emit_expr(obj)
+        local package_module, package_export, package_internal_name = resolve_package_member_export(obj)
+        local package_export_kind = package_export and (package_export.kind or (package_export.item and package_export.item.kind))
+        if package_export then
+          if package_export_kind == "Struct" and prop == "new" then
+            local ctor = ctx.struct_ctors[package_internal_name]
+            if ctor then
+              return ctor .. "(" .. table.concat(args, ", ") .. ")"
+            end
+          elseif package_export_kind == "Enum" then
+            local variant = find_enum_variant(package_internal_name, prop)
+            if not variant then
+              error("Unknown enum variant: " .. package_module .. "::" .. obj.property .. "." .. prop)
+            end
+            local expected = variant.types and #variant.types or 0
+            if expected > 1 then
+              error("Enum variant payload supports at most one value")
+            end
+            if #args ~= expected then
+              error("Enum variant " .. package_module .. "::" .. obj.property .. "." .. prop .. " expects " .. expected .. " value(s)")
+            end
+            local payload = (#args == 1) and args[1] or "rex_nil()"
+            return "rex_tag(" .. c_string(prop) .. ", " .. payload .. ")"
+          end
+          error("Package export " .. package_module .. "::" .. obj.property .. " does not support member call ." .. prop)
+        end
         if obj.kind == "Identifier" then
           local module = ctx.imports[obj.name]
           if module then
@@ -1068,7 +1145,15 @@ function Codegen.generate(ast, opts)
               return "rex_collections_vec_from(" .. #args .. ", (RexValue[]){" .. table.concat(args, ", ") .. "})"
             end
             local map = ctx.module_builtins[module]
-            local func = map and map[prop] or ("rex_" .. module .. "_" .. prop)
+            if map and map[prop] then
+              return map[prop] .. "(" .. table.concat(args, ", ") .. ")"
+            end
+            local export = ctx.external_modules[module] and ctx.external_modules[module][prop]
+            if export then
+              local func = ctx.functions[export.internal_name] or export.internal_name
+              return func .. "(" .. table.concat(args, ", ") .. ")"
+            end
+            local func = "rex_" .. module .. "_" .. prop
             return func .. "(" .. table.concat(args, ", ") .. ")"
           end
           if prop == "new" then
@@ -1160,6 +1245,21 @@ function Codegen.generate(ast, opts)
 
       return "(rex_panic(\"unsupported call\"), rex_nil())"
     elseif expr.kind == "Member" then
+      local package_module, package_export, package_internal_name = resolve_package_member_export(expr.object)
+      local package_export_kind = package_export and (package_export.kind or (package_export.item and package_export.item.kind))
+      if package_export then
+        if package_export_kind == "Enum" then
+          local variant = find_enum_variant(package_internal_name, expr.property)
+          if not variant then
+            error("Unknown enum variant: " .. package_module .. "::" .. expr.object.property .. "." .. expr.property)
+          end
+          local expected = variant.types and #variant.types or 0
+          if expected > 0 then
+            error("Enum variant " .. package_module .. "::" .. expr.object.property .. "." .. expr.property .. " requires payload")
+          end
+          return "rex_tag(" .. c_string(expr.property) .. ", rex_nil())"
+        end
+      end
       if expr.object.kind == "Identifier" and ctx.enums[expr.object.name] then
         local variant = find_enum_variant(expr.object.name, expr.property)
         if not variant then
@@ -1331,6 +1431,14 @@ function Codegen.generate(ast, opts)
     if not expr then
       return nil
     end
+    if expr.kind == "Member" and expr.object.kind == "Member" and expr.object.object.kind == "Identifier" then
+      local module = ctx.imports[expr.object.object.name]
+      local export = module and ctx.external_modules[module] and ctx.external_modules[module][expr.object.property]
+      local export_kind = export and (export.kind or (export.item and export.item.kind))
+      if export_kind == "Enum" then
+        return export.internal_name or (export.item and export.item.name) or expr.object.property
+      end
+    end
     if expr.kind == "Member" and expr.object.kind == "Identifier" then
       if ctx.enums[expr.object.name] then
         return expr.object.name
@@ -1340,6 +1448,14 @@ function Codegen.generate(ast, opts)
       local callee = expr.callee
       if callee.kind == "Generic" then
         callee = callee.expr
+      end
+      if callee.kind == "Member" and callee.object.kind == "Member" and callee.object.object.kind == "Identifier" then
+        local module = ctx.imports[callee.object.object.name]
+        local export = module and ctx.external_modules[module] and ctx.external_modules[module][callee.object.property]
+        local export_kind = export and (export.kind or (export.item and export.item.kind))
+        if export_kind == "Enum" then
+          return export.internal_name or (export.item and export.item.name) or callee.object.property
+        end
       end
       if callee.kind == "Member" and callee.object.kind == "Identifier" then
         if ctx.enums[callee.object.name] then
@@ -1363,6 +1479,14 @@ function Codegen.generate(ast, opts)
       if callee.kind == "Generic" then
         callee = callee.expr
       end
+      if callee.kind == "Member" and callee.object.kind == "Member" and callee.object.object.kind == "Identifier" then
+        local module = ctx.imports[callee.object.object.name]
+        local export = module and ctx.external_modules[module] and ctx.external_modules[module][callee.object.property]
+        local export_kind = export and (export.kind or (export.item and export.item.kind))
+        if callee.property == "new" and export_kind == "Struct" then
+          return export.internal_name or (export.item and export.item.name) or callee.object.property
+        end
+      end
       if callee.kind == "Member" and callee.object.kind == "Identifier" then
         local struct_name = callee.object.name
         if callee.property == "new" and ctx.structs[struct_name] then
@@ -1371,6 +1495,25 @@ function Codegen.generate(ast, opts)
       end
     end
     return nil
+  end
+
+  resolve_package_member_export = function(expr)
+    if not expr or expr.kind ~= "Member" then
+      return nil, nil, nil
+    end
+    if not expr.object or expr.object.kind ~= "Identifier" then
+      return nil, nil, nil
+    end
+    local module = ctx.imports[expr.object.name]
+    if not module then
+      return nil, nil, nil
+    end
+    local export = ctx.external_modules[module] and ctx.external_modules[module][expr.property]
+    if not export then
+      return module, nil, nil
+    end
+    local internal_name = export.internal_name or (export.item and export.item.name) or expr.property
+    return module, export, internal_name
   end
 
   local function emit_stmt(stmt)
