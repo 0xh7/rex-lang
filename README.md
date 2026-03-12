@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Ownership-aware native programming with a Lua front-end, a C backend, and a bounded package workflow.
+  Ownership-aware native programming with a Lua front-end, a C backend, and a practical project workflow.
 </p>
 
 <p align="center">
@@ -160,7 +160,7 @@ These commands resolve the program entry from `entry` in `rex.toml`.
 
 ## Package Workflow
 
-Rex now supports a bounded package workflow aimed at local and pinned dependencies.
+Rex now supports a project/package workflow built around local and pinned dependencies.
 
 ![Rex package workflow](./docs/assets/readme-packages.svg)
 
@@ -230,7 +230,7 @@ The current branch of Rex is focused on three things:
 
 - keeping the core language explicit and inspectable
 - making the standard library practical for daily work
-- stabilizing project and package management before adding registry complexity
+- stabilizing project and package management before taking on package hosting
 
 ## Releases
 

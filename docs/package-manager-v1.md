@@ -1,7 +1,7 @@
 # Rex Package Manager v1
 
-This document records the package-manager scope we are actually building for Rex v1.
-The target is a small, predictable workflow for real projects, not a full package ecosystem on day one.
+This document records the package-manager scope for Rex v1.
+The goal is a small, predictable workflow for real projects, not a full package ecosystem on day one.
 
 ## Goals
 
@@ -79,7 +79,7 @@ This phase exists to stabilize:
 
 ### Phase 2: Dependency Resolution
 
-Status: implemented in bounded form
+Status: implemented
 
 Scope:
 
@@ -119,7 +119,7 @@ Current limitations:
 
 ### Phase 3: Git Dependencies
 
-Status: implemented in bounded form
+Status: implemented
 
 Scope:
 

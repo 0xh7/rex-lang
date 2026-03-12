@@ -14,7 +14,7 @@ This roadmap tracks the next practical steps for Rex as a toolchain and language
 - Add clearer module/package story.
 - Improve type system ergonomics for large projects.
 - Add stronger static guarantees around advanced features.
-- Land the first bounded package-manager milestone (`docs/package-manager-v1.md`).
+- Land the first package-manager milestone (`docs/package-manager-v1.md`).
 - Extend the package-manager baseline from local paths to git-pinned dependencies.
 
 ### Long Term

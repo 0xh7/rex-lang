@@ -434,46 +434,6 @@ function Parser:parse_statement()
     return self:build_assignment_from_target(target, assign_op, rhs)
   end
 
-  if self:is_index_assign_ahead() then
-    local name = self:expect_kind("ident").value
-    self:expect("[")
-    local index = self:parse_expression()
-    if self:match("..") then
-      self:error("Slice assignment is not supported")
-    end
-    self:expect("]")
-    self:expect("=")
-    local value = self:parse_expression()
-    self:match(";")
-    return ast.node("IndexAssign", {
-      object = ast.node("Identifier", { name = name }),
-      index = index,
-      value = value,
-    })
-  end
-
-  
-  if self:is_index_compound_assign_ahead() then
-    local name = self:expect_kind("ident").value
-    local obj = ast.node("Identifier", { name = name })
-    self:expect("[")
-    local index = self:parse_expression()
-    self:expect("]")
-    local bin_op = COMPOUND_OPS[self:current().value]
-    self:advance()
-    local rhs = self:parse_expression()
-    self:match(";")
-    return ast.node("IndexAssign", {
-      object = obj,
-      index = index,
-      value = ast.node("Binary", {
-        op = bin_op,
-        left = ast.node("Index", { object = obj, index = index }),
-        right = rhs,
-      }),
-    })
-  end
-
 
   if self:current().kind == "ident" and self:peek(1).value == "=" then
     local name = self:expect_kind("ident").value
@@ -500,31 +460,6 @@ function Parser:parse_statement()
     })
   end
 
-  
-  if self:is_member_assign_ahead() then
-    local obj, prop = self:parse_member_lvalue()
-    self:expect("=")
-    local value = self:parse_expression()
-    self:match(";")
-    return ast.node("MemberAssign", { object = obj, property = prop, value = value })
-  end
-
-  
-  if self:is_member_compound_assign_ahead() then
-    local obj, prop = self:parse_member_lvalue()
-    local bin_op = COMPOUND_OPS[self:current().value]
-    self:advance()
-    local rhs = self:parse_expression()
-    self:match(";")
-    local lval = ast.node("Member", { object = obj, property = prop })
-    return ast.node("MemberAssign", {
-      object = obj,
-      property = prop,
-      value = ast.node("Binary", { op = bin_op, left = lval, right = rhs }),
-    })
-  end
-
-
   if self:current().value == "*" and self:peek(1).kind == "ident" and self:peek(2).value == "=" then
     self:advance()
     local name = self:expect_kind("ident").value
@@ -537,19 +472,6 @@ function Parser:parse_statement()
   local expr = self:parse_expression()
   self:match(";")
   return ast.node("ExprStmt", { expr = expr })
-end
-
-function Parser:is_member_assign_ahead()
-  if self:current().kind ~= "ident" then return false end
-  if self:peek(1).value ~= "." then return false end
-  local i = 2
-  while true do
-    if self:peek(i).kind ~= "ident" then return false end
-    i = i + 1
-    if self:peek(i).value == "=" then return true end
-    if self:peek(i).value ~= "." then return false end
-    i = i + 1
-  end
 end
 
 function Parser:is_postfix_lvalue_assign_ahead()
@@ -640,76 +562,6 @@ function Parser:build_assignment_from_target(target, assign_op, rhs)
   end
 
   self:error("Invalid assignment target")
-end
-
-
-function Parser:is_member_compound_assign_ahead()
-  if self:current().kind ~= "ident" then return false end
-  if self:peek(1).value ~= "." then return false end
-  local i = 2
-  while true do
-    if self:peek(i).kind ~= "ident" then return false end
-    i = i + 1
-    if COMPOUND_OPS[self:peek(i).value] then return true end
-    if self:peek(i).value ~= "." then return false end
-    i = i + 1
-  end
-end
-
-
-function Parser:is_index_compound_assign_ahead()
-  if self:current().kind ~= "ident" or self:peek(1).value ~= "[" then return false end
-  local depth = 0
-  local i = 1
-  while true do
-    local tok = self:peek(i)
-    if not tok or tok.kind == "eof" then return false end
-    if tok.value == "[" then
-      depth = depth + 1
-    elseif tok.value == "]" then
-      depth = depth - 1
-      if depth == 0 then
-        return COMPOUND_OPS[self:peek(i + 1).value] ~= nil
-      end
-    end
-    i = i + 1
-  end
-end
-
-
-function Parser:parse_member_lvalue()
-  local obj = ast.node("Identifier", { name = self:expect_kind("ident").value })
-  self:expect(".")
-  local prop = self:expect_kind("ident").value
-  while self:peek(0).value == "." do
-    obj = ast.node("Member", { object = obj, property = prop })
-    self:expect(".")
-    prop = self:expect_kind("ident").value
-  end
-  return obj, prop
-end
-
-function Parser:is_index_assign_ahead()
-  if self:current().kind ~= "ident" or self:peek(1).value ~= "[" then
-    return false
-  end
-  local depth = 0
-  local i = 1
-  while true do
-    local tok = self:peek(i)
-    if not tok or tok.kind == "eof" then
-      return false
-    end
-    if tok.value == "[" then
-      depth = depth + 1
-    elseif tok.value == "]" then
-      depth = depth - 1
-      if depth == 0 then
-        return self:peek(i + 1).value == "="
-      end
-    end
-    i = i + 1
-  end
 end
 
 function Parser:parse_let(already_mut)
