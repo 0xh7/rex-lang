@@ -27,7 +27,9 @@ node_modules/
 
 # Logs
 *.log
-
+*.log 
+rex-playground-api-deploy.tgz 
+rex-playground-runner-split.tgz
 # Service directories
 services/
 website/
